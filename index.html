@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Ventas - Agua Purificada</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#667eea">
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js');
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💧 Sistema de Ventas</h1>
+            <p>Agua Purificada - Gestión Digital</p>
+        </div>
+
+        <div class="main-content">
+            <div class="form-section">
+                <h3>📝 Nueva Venta</h3>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                    <label>🏪 Venta Local (25 pesos)</label>
+                    <div class="input-with-btn">
+                        <input type="number" id="ventaLocal" min="0" placeholder="0" oninput="calcularTotal()">
+                        <button type="button" class="save-inline-btn" onclick="guardarIndividual('ventaLocal')">💾</button>
+                    </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>🚚 Camión (30 pesos)</label>
+                        <div class="input-with-btn">
+                            <input type="number" id="camion" min="0" placeholder="0" oninput="calcularTotal()">
+                            <button type="button" class="save-inline-btn" onclick="guardarIndividual('camion')">💾</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Total Botellones</label>
+                        <div class="price-display" id="totalBotellones">0</div>
+                    </div>
+                </div>
+
+                <!-- Sección Personal de Delivery -->
+                <div class="delivery-section">
+                    <h4>🚴 Repartidores (35 pesos)</h4>
+
+                    <!-- Agregar/gestionar empleados -->
+                    <div class="delivery-input-container">
+                        <input type="text" id="empleadoNombre" placeholder="Nombre del repartidor (ej. Juan Pérez)" maxlength="30">
+                        <button type="button" class="add-employee-btn" onclick="agregarEmpleado()">+ Agregar repartidor</button>
+                    </div>
+
+                    <!-- Tarjetas de empleados con casilla de cantidad para ESTA venta -->
+                    <div class="employees-container" id="empleadosContainer">
+                        <div style="color: #999; font-style: italic; grid-column: 1 / -1;">No hay repartidores agregados</div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Precio por Servicio</label>
+                        <div class="price-display" id="precioServicio">$0</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo de Servicio</label>
+                        <div class="price-display" id="tipoServicio">-</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Total a Pagar</label>
+                        <div class="price-display" id="totalPagar">$0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="total-section">
+                <div>Total de la Venta</div>
+                <div class="total-amount" id="montoFinal">$0</div>
+            </div>
+
+            <div class="buttons">
+                <button class="btn-save" onclick="guardarVenta()">💾 Guardar Venta</button>
+                <button class="btn-clear" onclick="limpiarFormulario()">🔄 Limpiar</button>
+                <button class="btn-export" onclick="exportarCSV()">📁 Exportar CSV</button>
+            </div>
+
+            <div class="records-section">
+                <div class="records-header">
+                    <h3>📊 Registro de Ventas del Día</h3>
+                    <button class="btn-clear" onclick="limpiarRegistros()" style="padding: 8px 16px; font-size: 0.9em;">🗑️ Limpiar Todo</button>
+                </div>
+
+                <table class="records-table">
+                    <thead>
+                        <tr>
+                            <th>Hora</th>
+                            <th>Tipo</th>
+                            <th>Detalles</th>
+                            <th>Botellones</th>
+                            <th>Precio Unit.</th>
+                            <th>Total</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaRegistros">
+                        <tr>
+                            <td colspan="7" style="color: #888; font-style: italic;">No hay ventas registradas</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="daily-total">
+                    <h3>💰 Total del Día: <span id="totalDiario">$0</span></h3>
+                    <p>Local: <span id="ventasLocal">0</span> | Delivery: <span id="ventasDelivery">0</span> | Camión: <span id="ventasCamion">0</span> | Total Botellones: <span id="botellonesTotal">0</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
