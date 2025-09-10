@@ -315,3 +315,79 @@
     guardarVenta(); 
     alert(`✅ Venta guardada desde el campo: ${campo}`);
 }
+// Repositorio de GitHub
+const repo = "Joel014/sistema-ventas-agua";
+const path = "ventas.json";
+const apiUrl = `https://api.github.com/repos/${repo}/contents/${path}`;
+
+// Cargar ventas desde ventas.json al iniciar
+async function cargarVentas() {
+  try {
+    const res = await fetch("ventas.json");
+    const data = await res.json();
+    localStorage.setItem("ventas", JSON.stringify(data));
+    console.log("Ventas cargadas desde ventas.json:", data);
+  } catch (err) {
+    console.log("Error al cargar ventas.json:", err);
+  }
+}
+
+function nuevaVenta() {
+  const cliente = document.getElementById("cliente").value;
+  const cantidad = parseInt(document.getElementById("cantidad").value);
+
+  if (cliente && cantidad > 0) {
+    const venta = { 
+      cliente, 
+      cantidad, 
+      fecha: new Date().toISOString() 
+    };
+
+    guardarVenta(venta); // 👈 aquí llama a la función que sube a GitHub
+  } else {
+    alert("Completa los campos correctamente");
+  }
+}
+
+
+// Guardar venta en LocalStorage + GitHub
+async function guardarVenta(nuevaVenta) {
+  let ventas = JSON.parse(localStorage.getItem("ventas")) || [];
+  ventas.push(nuevaVenta);
+  localStorage.setItem("ventas", JSON.stringify(ventas));
+
+  // Guardar también en GitHub
+  try {
+    // 1. Obtener SHA del archivo actual en GitHub
+    const getFile = await fetch(apiUrl, {
+      headers: { Authorization: `token ${token}` }
+    });
+    const fileData = await getFile.json();
+    const sha = fileData.sha;
+
+    // 2. Subir nuevo contenido
+    const update = await fetch(apiUrl, {
+      method: "PUT",
+      headers: {
+        Authorization: `token ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: "Actualización de ventas",
+        content: btoa(JSON.stringify(ventas, null, 2)), // Base64
+        sha: sha
+      })
+    });
+
+    const result = await update.json();
+    console.log("Venta guardada en GitHub:", result);
+  } catch (err) {
+    console.error("Error al guardar en GitHub:", err);
+  }
+}
+
+// Ejemplo de uso:
+// guardarVenta({ cliente: "Pedro", cantidad: 5, fecha: new Date().toISOString() });
+
+// Ejecutar carga inicial
+cargarVentas();
