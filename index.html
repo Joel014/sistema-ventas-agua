@@ -17,14 +17,18 @@
 </head>
 <body>
   <div class="container">
+    <!-- HEADER -->
     <header class="header">
       <h1>💧 Sistema de Ventas</h1>
       <p>Agua Purificada - Gestión Digital</p>
     </header>
 
     <main class="main-content">
+      <!-- SECCIÓN: NUEVA VENTA -->
       <section class="form-section">
         <h2>📝 Nueva Venta</h2>
+        
+        <!-- Ventas Local y Camión -->
         <div class="form-row">
           <div class="form-group">
             <label for="ventaLocal">🏪 Venta Local (25 pesos)</label>
@@ -48,7 +52,8 @@
           </div>
         </div>
 
-        <section class="delivery-section">
+        <!-- Subsección: Repartidores -->
+        <div class="delivery-section">
           <h3>🚴 Repartidores (35 pesos)</h3>
 
           <div class="delivery-input-container">
@@ -60,17 +65,20 @@
           <div class="employees-container" id="empleadosContainer">
             <div style="color:#999; font-style:italic; grid-column:1 / -1">No hay repartidores agregados</div>
           </div>
-        </section>
+        </div>
 
+        <!-- Resumen de Venta -->
         <div class="form-row">
           <div class="form-group">
             <label>Precio por Servicio</label>
             <div class="price-display" id="precioServicio">$0</div>
           </div>
+          
           <div class="form-group">
             <label>Tipo de Servicio</label>
             <div class="price-display" id="tipoServicio">-</div>
           </div>
+          
           <div class="form-group">
             <label>Total a Pagar</label>
             <div class="price-display" id="totalPagar">$0</div>
@@ -78,55 +86,69 @@
         </div>
       </section>
 
+      <!-- SECCIÓN: TOTAL DE VENTA -->
       <section class="total-section">
         <div>Total de la Venta</div>
         <div class="total-amount" id="montoFinal">$0</div>
       </section>
 
+      <!-- SECCIÓN: BOTONES PRINCIPALES -->
       <section class="buttons">
         <button type="button" class="btn-save" onclick="guardarVenta()">💾 Guardar Venta</button>
         <button type="button" class="btn-clear" onclick="limpiarFormulario()">🔄 Limpiar</button>
         <button type="button" class="btn-export" onclick="exportarCSV()">📁 Exportar CSV</button>
       </section>
 
+      <!-- SECCIÓN: GASTOS -->
       <section class="expenses-section">
         <h3>💸 Registro de Gastos</h3>
+        
         <div class="form-row">
           <div class="form-group">
             <label for="montoGasto">💰 Monto del Gasto</label>
             <input type="number" id="montoGasto" min="0" placeholder="0" step="0.01">
           </div>
+          
           <div class="form-group" style="grid-column: span 2;">
             <label for="notaGasto">📝 Descripción del Gasto</label>
             <textarea id="notaGasto" placeholder="Ej: Compra de repuestos, gasolina, mantenimiento..." rows="3"></textarea>
           </div>
         </div>
-        <button class="btn btn-warning" onclick="guardarGasto()">💾 Guardar Gasto</button>
+        
+        <button class="btn-warning" onclick="guardarGasto()">💾 Guardar Gasto</button>
       </section>
 
+      <!-- SECCIÓN: OTROS SERVICIOS -->
       <section class="otros-section">
         <h3>🔧 Otros Servicios</h3>
+        
         <div class="form-row">
           <div class="form-group">
             <label for="precioOtro">💵 Precio Unitario</label>
             <input type="number" id="precioOtro" min="1" step="0.01" placeholder="Ej: 25">
           </div>
+          
           <div class="form-group">
             <label for="cantidadOtro">📦 Cantidad</label>
             <input type="number" id="cantidadOtro" min="1" placeholder="0">
           </div>
+          
           <div class="form-group">
             <label for="descripcionOtro">📝 Descripción</label>
             <input type="text" id="descripcionOtro" placeholder="Ej: Servicio especial, limpieza..." maxlength="50">
           </div>
         </div>
-        <button class="btn btn-info" onclick="guardarOtroServicio()">💾 Guardar Otro Servicio</button>
+        
+        <button class="btn-info" onclick="guardarOtroServicio()">💾 Guardar Otro Servicio</button>
       </section>
 
+      <!-- SECCIÓN: REGISTRO DE VENTAS -->
       <section class="records-section">
         <div class="records-header">
           <h2>📊 Registro de Ventas del Día</h2>
-          <button type="button" class="btn-clear" onclick="limpiarRegistros()" style="padding:8px 16px; font-size:.9em">🗑️ Limpiar Todo</button>
+          <button type="button" class="btn-clear" onclick="limpiarRegistros()" style="padding:8px 16px; font-size:.9em">
+            🗑️ Limpiar Todo
+          </button>
         </div>
 
         <table class="records-table">
@@ -142,13 +164,23 @@
             </tr>
           </thead>
           <tbody id="tablaRegistros">
-            <tr><td colspan="7" style="color:#888; font-style:italic">No hay ventas registradas</td></tr>
+            <tr>
+              <td colspan="7" style="color:#888; font-style:italic; text-align:center">
+                No hay ventas registradas
+              </td>
+            </tr>
           </tbody>
         </table>
 
+        <!-- Resumen Diario -->
         <div class="daily-total">
           <h3>💰 Total del Día: <span id="totalDiario">$0</span></h3>
-          <p>Local: <span id="ventasLocal">0</span> | Delivery: <span id="ventasDelivery">0</span> | Camión: <span id="ventasCamion">0</span> | Total Botellones: <span id="botellonesTotal">0</span></p>
+          <p>
+            Local: <span id="ventasLocal">0</span> | 
+            Delivery: <span id="ventasDelivery">0</span> | 
+            Camión: <span id="ventasCamion">0</span> | 
+            Total Botellones: <span id="botellonesTotal">0</span>
+          </p>
         </div>
       </section>
     </main>
