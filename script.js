@@ -281,7 +281,7 @@
       window.guardarOtroServicio = function () {
         const precio = parseFloat(document.getElementById('precioOtro').value) || 0;
         const cantidad = parseInt(document.getElementById('cantidadOtro').value) || 0;
-        const descripcion = document.getElementById('descripcionOtro').value.trim();
+        const descripcion = document.getElementById('descripcionOtro').value.trim() || 'Sin descripción';
         if (precio <= 0) { alert('⚠️ Ingresa un precio válido'); document.getElementById('precioOtro').focus(); return; }
         if (cantidad <= 0) { alert('⚠️ Ingresa una cantidad válida'); document.getElementById('cantidadOtro').focus(); return; }
         if (!descripcion) { alert('⚠️ Por favor describe el servicio'); document.getElementById('descripcionOtro').focus(); return; }
