@@ -442,6 +442,38 @@
         setTimeout(() => { notification.style.opacity = '0'; notification.style.transform = 'translateY(-10px)'; setTimeout(()=> notification.remove(), 300); }, 2600);
       }
 
+       function guardarIndividual(tipo) {
+      console.log('Guardar individual:', tipo);
+    }
+
+    function agregarEmpleado() {
+      console.log('Agregar empleado');
+    }
+
+    function guardarVenta() {
+      console.log('Guardar venta');
+    }
+
+    function limpiarFormulario() {
+      console.log('Limpiar formulario');
+    }
+
+    function exportarCSV() {
+      console.log('Exportar CSV');
+    }
+
+    function guardarGasto() {
+      console.log('Guardar gasto');
+    }
+
+    function guardarOtroServicio() {
+      console.log('Guardar otro servicio');
+    }
+
+    function limpiarRegistros() {
+      console.log('Limpiar registros');
+    }
+
       // ---------- INICIALIZACIÓN ----------
       function init() {
         cargarDesdeStorage();
