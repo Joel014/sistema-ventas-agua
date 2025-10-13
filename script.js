@@ -1,4 +1,22 @@
-     // Encapsular todo para evitar fugas globales
+// Import the functions you need from the SDKs you need
+    import { initializeApp } from "firebase/app";
+    // TODO: Add SDKs for Firebase products that you want to use
+    // https://firebase.google.com/docs/web/setup#available-libraries
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyCojK8pGgNKb9AhUHo50rgYiW769t_ljmk",
+      authDomain: "sistemaventasagua.firebaseapp.com",
+      projectId: "sistemaventasagua",
+      storageBucket: "sistemaventasagua.firebasestorage.app",
+      messagingSenderId: "699153205855",
+      appId: "1:699153205855:web:33455493ba6e40b4d029ea"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    
+    // Encapsular todo para evitar fugas globales
     (function () {
       let ventasDelDia = [];
       let contadorVentas = 0;
@@ -148,64 +166,94 @@
       }
 
       // ---------- VENTAS ----------
-      window.guardarVenta = function () {
-        const ventaLocal = parseInt(document.getElementById('ventaLocal').value) || 0;
-        const camion = parseInt(document.getElementById('camion').value) || 0;
-        const inputs = document.querySelectorAll('.empleado-cantidad');
-        let totalDelivery = 0;
-        const entregas = [];
-        inputs.forEach(i => {
-          const cantidad = parseInt(i.value) || 0;
-          if (cantidad > 0) {
-            const empId = parseInt(i.getAttribute('data-emp-id'));
-            const emp = empleados.find(e => e.id === empId);
-            if (emp) entregas.push({ empleadoId: emp.id, nombre: emp.nombre, cantidad });
-            totalDelivery += cantidad;
-          }
-        });
+      window.guardarVenta = async function () {
+  const ventaLocal = parseInt(document.getElementById('ventaLocal').value) || 0;
+  const camion = parseInt(document.getElementById('camion').value) || 0;
+  const inputs = document.querySelectorAll('.empleado-cantidad');
+  let totalDelivery = 0;
+  const entregas = [];
 
-        if (ventaLocal === 0 && totalDelivery === 0 && camion === 0) { alert('⚠️ Debe ingresar al menos un botellón para guardar la venta'); return; }
+  inputs.forEach(i => {
+    const cantidad = parseInt(i.value) || 0;
+    if (cantidad > 0) {
+      const empId = parseInt(i.getAttribute('data-emp-id'));
+      const emp = empleados.find(e => e.id === empId);
+      if (emp) entregas.push({ empleadoId: emp.id, nombre: emp.nombre, cantidad });
+      totalDelivery += cantidad;
+    }
+  });
 
-        const ahora = new Date();
-        const hora = ahora.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  if (ventaLocal === 0 && totalDelivery === 0 && camion === 0) {
+    alert('⚠️ Debe ingresar al menos un botellón para guardar la venta');
+    return;
+  }
 
-        const totalBotellones = ventaLocal + totalDelivery + camion;
-        const totalLocal = ventaLocal * PRECIO_LOCAL;
-        const totalDeliveryMonto = totalDelivery * PRECIO_DELIVERY;
-        const totalCamion = camion * PRECIO_CAMION;
-        const totalGeneral = totalLocal + totalDeliveryMonto + totalCamion;
+  const ahora = new Date();
+  const hora = ahora.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  const fecha = ahora.toLocaleDateString('es-ES');
 
-        const tiposActivos = [];
-        if (ventaLocal > 0) tiposActivos.push('Local');
-        if (totalDelivery > 0) tiposActivos.push('Delivery');
-        if (camion > 0) tiposActivos.push('Camión');
+  const totalBotellones = ventaLocal + totalDelivery + camion;
+  const totalLocal = ventaLocal * PRECIO_LOCAL;
+  const totalDeliveryMonto = totalDelivery * PRECIO_DELIVERY;
+  const totalCamion = camion * PRECIO_CAMION;
+  const totalGeneral = totalLocal + totalDeliveryMonto + totalCamion;
 
-        const tipoServicio = tiposActivos.length === 0 ? '-' : (tiposActivos.length === 1 ? tiposActivos[0] : 'Mixto');
-        const precioUnitario = tiposActivos.length === 1
-          ? (tipoServicio === 'Local' ? `${formatCurrency(PRECIO_LOCAL)}` : tipoServicio === 'Delivery' ? `${formatCurrency(PRECIO_DELIVERY)}` : `${formatCurrency(PRECIO_CAMION)}`)
-          : 'Var.';
+  const tiposActivos = [];
+  if (ventaLocal > 0) tiposActivos.push('Local');
+  if (totalDelivery > 0) tiposActivos.push('Delivery');
+  if (camion > 0) tiposActivos.push('Camión');
 
-        const detallesEntregas = entregas.length > 0 ? entregas.map(e => `${e.nombre}(${e.cantidad})`).join(', ') : '';
+  const tipoServicio =
+    tiposActivos.length === 0 ? '-' :
+    (tiposActivos.length === 1 ? tiposActivos[0] : 'Mixto');
 
-        const nuevaVenta = {
-          id: ++contadorVentas,
-          hora,
-          tipo: tipoServicio,
-          ventaLocal,
-          totalDelivery,
-          entregasDelivery: entregas,
-          detallesEntregas: detallesEntregas,
-          camion,
-          totalBotellones,
-          precioUnitario,
-          total: totalGeneral
-        };
+  const precioUnitario =
+    tiposActivos.length === 1
+      ? (tipoServicio === 'Local'
+          ? `${formatCurrency(PRECIO_LOCAL)}`
+          : tipoServicio === 'Delivery'
+            ? `${formatCurrency(PRECIO_DELIVERY)}`
+            : `${formatCurrency(PRECIO_CAMION)}`
+        )
+      : 'Var.';
 
-        ventasDelDia.push(nuevaVenta);
-        actualizarTablaRegistros();
-        actualizarTotalDiario();
-        guardarEnStorage();
-        limpiarFormulario();
+  const detallesEntregas = entregas.length > 0
+    ? entregas.map(e => `${e.nombre}(${e.cantidad})`).join(', ')
+    : '';
+
+  const nuevaVenta = {
+    id: ++contadorVentas,
+    hora,
+    fecha,
+    tipo: tipoServicio,
+    ventaLocal,
+    totalDelivery,
+    entregasDelivery: entregas,
+    detallesEntregas,
+    camion,
+    totalBotellones,
+    precioUnitario,
+    total: totalGeneral
+  };
+
+  // 🔹 Guardar localmente (como ya hacías)
+  ventasDelDia.push(nuevaVenta);
+  actualizarTablaRegistros();
+  actualizarTotalDiario();
+  guardarEnStorage();
+
+  // 🔹 Guardar también en Firestore
+  try {
+    await ventasRef.add(nuevaVenta);
+    console.log("✅ Venta guardada en Firestore correctamente");
+  } catch (error) {
+    console.error("❌ Error al guardar en Firestore:", error);
+  }
+
+  // 🔹 Limpiar formulario al final
+  limpiarFormulario();
+};
+
 
         // Feedback visual
         const btnGuardar = document.querySelector('.btn-save');
@@ -214,7 +262,7 @@
         btnGuardar.style.background = '#27ae60';
         btnGuardar.classList.add('success-animation');
         setTimeout(() => { btnGuardar.innerHTML = textoOriginal; btnGuardar.style.background = ''; btnGuardar.classList.remove('success-animation'); }, 1200);
-      };
+      
 
       // Guardar individual (ventaLocal, camion o empleado-<id>)
       window.guardarIndividual = function (campo) {
@@ -224,42 +272,108 @@
 
         if (campo === 'ventaLocal') {
           const cantidad = parseInt(document.getElementById('ventaLocal').value) || 0;
-          if (cantidad <= 0) { alert('Ingresa una cantidad mayor a 0 para venta local'); return; }
+          if (cantidad <= 0) {
+            alert('Ingresa una cantidad mayor a 0 para venta local');
+            return;
+          }
           const total = cantidad * PRECIO_LOCAL;
-          const venta = { id: ++contadorVentas, hora, tipo: 'Local', detalles: '-', cantidad, precioUnitario: `${formatCurrency(PRECIO_LOCAL)}`, total };
+          const venta = {
+            id: ++contadorVentas,
+            hora,
+            tipo: 'Local',
+            detalles: '-',
+            cantidad,
+            precioUnitario: `${formatCurrency(PRECIO_LOCAL)}`,
+            total
+          };
           ventasDelDia.push(venta);
-          actualizarTablaRegistros(); actualizarTotalDiario(); guardarEnStorage(); document.getElementById('ventaLocal').value = '';
+          actualizarTablaRegistros();
+          actualizarTotalDiario();
+          guardarEnStorage();
+          document.getElementById('ventaLocal').value = '';
+          limpiarFormulario(); // 🔹 agregado aquí
           mostrarConfirmacion('💾 Venta local guardada', '#56ab2f');
           return;
         }
 
         if (campo === 'camion') {
           const cantidad = parseInt(document.getElementById('camion').value) || 0;
-          if (cantidad <= 0) { alert('Ingresa una cantidad mayor a 0 para camión'); return; }
+          if (cantidad <= 0) {
+            alert('Ingresa una cantidad mayor a 0 para camión');
+            return;
+          }
           const total = cantidad * PRECIO_CAMION;
-          const venta = { id: ++contadorVentas, hora, tipo: 'Camión', detalles: '-', cantidad, precioUnitario: `${formatCurrency(PRECIO_CAMION)}`, total };
+          const venta = {
+            id: ++contadorVentas,
+            hora,
+            tipo: 'Camión',
+            detalles: '-',
+            cantidad,
+            precioUnitario: `${formatCurrency(PRECIO_CAMION)}`,
+            total
+          };
           ventasDelDia.push(venta);
-          actualizarTablaRegistros(); actualizarTotalDiario(); guardarEnStorage(); document.getElementById('camion').value = '';
+          actualizarTablaRegistros();
+          actualizarTotalDiario();
+          guardarEnStorage();
+          document.getElementById('camion').value = '';
+          limpiarFormulario(); // 🔹 agregado aquí
           mostrarConfirmacion('💾 Venta de camión guardada', '#f39c12');
           return;
         }
 
-        // empleado-<id>
-        if (campo.startsWith('empleado-')) {
-          const empId = parseInt(campo.split('-')[1]);
-          const input = document.querySelector(`.empleado-cantidad[data-emp-id='${empId}']`);
-          if (!input) { alert('No se encontró la entrada del repartidor'); return; }
-          const cantidad = parseInt(input.value) || 0;
-          if (cantidad <= 0) { alert('Ingresa una cantidad mayor a 0 para este repartidor'); return; }
-          const emp = empleados.find(e => e.id === empId);
-          const total = cantidad * PRECIO_DELIVERY;
-          const venta = { id: ++contadorVentas, hora, tipo: 'Delivery', detalles: emp ? emp.nombre : 'Repartidor', cantidad, precioUnitario: `${formatCurrency(PRECIO_DELIVERY)}`, total };
-          ventasDelDia.push(venta);
-          actualizarTablaRegistros(); actualizarTotalDiario(); guardarEnStorage(); input.value = '';
-          mostrarConfirmacion(`💾 Entrega de ${emp ? emp.nombre : 'repartidor'} guardada`, '#c0392b');
-          return;
-        }
-      };
+        // 🔹 Función para limpiar formulario y totales
+      function limpiarFormulario() {
+        // Limpiar inputs
+        document.getElementById('ventaLocal').value = '';
+        document.getElementById('camion').value = '';
+        document.getElementById('empleadoNombre').value = '';
+        const empleadosInputs = document.querySelectorAll('.empleado-cantidad');
+        empleadosInputs.forEach(input => input.value = '');
+
+        // 🔹 Limpiar totales mostrados
+        document.getElementById('totalBotellones').textContent = '0';
+        document.getElementById('precioServicio').textContent = '$0';
+        document.getElementById('tipoServicio').textContent = '-';
+        document.getElementById('totalPagar').textContent = '$0';
+        document.getElementById('montoFinal').textContent = '$0';
+      }
+
+  // empleado-<id>
+  if (campo.startsWith('empleado-')) {
+    const empId = parseInt(campo.split('-')[1]);
+    const input = document.querySelector(`.empleado-cantidad[data-emp-id='${empId}']`);
+    if (!input) {
+      alert('No se encontró la entrada del repartidor');
+      return;
+    }
+    const cantidad = parseInt(input.value) || 0;
+    if (cantidad <= 0) {
+      alert('Ingresa una cantidad mayor a 0 para este repartidor');
+      return;
+    }
+    const emp = empleados.find(e => e.id === empId);
+    const total = cantidad * PRECIO_DELIVERY;
+    const venta = {
+      id: ++contadorVentas,
+      hora,
+      tipo: 'Delivery',
+      detalles: emp ? emp.nombre : 'Repartidor',
+      cantidad,
+      precioUnitario: `${formatCurrency(PRECIO_DELIVERY)}`,
+      total
+    };
+    ventasDelDia.push(venta);
+    actualizarTablaRegistros();
+    actualizarTotalDiario();
+    guardarEnStorage();
+    input.value = '';
+    limpiarFormulario(); // 🔹 agregado aquí
+    mostrarConfirmacion(`💾 Entrega de ${emp ? emp.nombre : 'repartidor'} guardada`, '#c0392b');
+    return;
+  }
+};
+
 
       // ---------- GASTOS ----------
       window.guardarGasto = function () {
@@ -486,3 +600,12 @@
 
       document.addEventListener('DOMContentLoaded', init);
     })();
+
+    ventasRef.orderBy("hora", "asc").onSnapshot(snapshot => {
+  ventasDelDia = [];
+  snapshot.forEach(doc => {
+    ventasDelDia.push(doc.data());
+  });
+  actualizarTablaRegistros();
+  actualizarTotalDiario();
+});
