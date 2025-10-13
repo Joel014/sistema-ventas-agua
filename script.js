@@ -1,26 +1,4 @@
-// Import the functions you need from the SDKs you need
-    import { initializeApp } from "firebase/app";
-    import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "firebase/firestore";
-
-    // TODO: Add SDKs for Firebase products that you want to use
-    // https://firebase.google.com/docs/web/setup#available-libraries
-
-    // Your web app's Firebase configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyCojK8pGgNKb9AhUHo50rgYiW769t_ljmk",
-      authDomain: "sistemaventasagua.firebaseapp.com",
-      projectId: "sistemaventasagua",
-      storageBucket: "sistemaventasagua.firebasestorage.app",
-      messagingSenderId: "699153205855",
-      appId: "1:699153205855:web:33455493ba6e40b4d029ea"
-    };
-
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const ventasRef = collection(db, "ventas");
-    
-    // Encapsular todo para evitar fugas globales
+     // Encapsular todo para evitar fugas globales
     (function () {
       let ventasDelDia = [];
       let contadorVentas = 0;
@@ -170,104 +148,64 @@
       }
 
       // ---------- VENTAS ----------
-      window.guardarVenta = async function () {
-  const ventaLocal = parseInt(document.getElementById('ventaLocal').value) || 0;
-  const camion = parseInt(document.getElementById('camion').value) || 0;
-  const inputs = document.querySelectorAll('.empleado-cantidad');
-  let totalDelivery = 0;
-  const entregas = [];
+      window.guardarVenta = function () {
+        const ventaLocal = parseInt(document.getElementById('ventaLocal').value) || 0;
+        const camion = parseInt(document.getElementById('camion').value) || 0;
+        const inputs = document.querySelectorAll('.empleado-cantidad');
+        let totalDelivery = 0;
+        const entregas = [];
+        inputs.forEach(i => {
+          const cantidad = parseInt(i.value) || 0;
+          if (cantidad > 0) {
+            const empId = parseInt(i.getAttribute('data-emp-id'));
+            const emp = empleados.find(e => e.id === empId);
+            if (emp) entregas.push({ empleadoId: emp.id, nombre: emp.nombre, cantidad });
+            totalDelivery += cantidad;
+          }
+        });
 
-  inputs.forEach(i => {
-    const cantidad = parseInt(i.value) || 0;
-    if (cantidad > 0) {
-      const empId = parseInt(i.getAttribute('data-emp-id'));
-      const emp = empleados.find(e => e.id === empId);
-      if (emp) entregas.push({ empleadoId: emp.id, nombre: emp.nombre, cantidad });
-      totalDelivery += cantidad;
-    }
-  });
+        if (ventaLocal === 0 && totalDelivery === 0 && camion === 0) { alert('⚠️ Debe ingresar al menos un botellón para guardar la venta'); return; }
 
-  if (ventaLocal === 0 && totalDelivery === 0 && camion === 0) {
-    alert('⚠️ Debe ingresar al menos un botellón para guardar la venta');
-    return;
-  }
+        const ahora = new Date();
+        const hora = ahora.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
-  const ahora = new Date();
-  const hora = ahora.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-  const fecha = ahora.toLocaleDateString('es-ES');
+        const totalBotellones = ventaLocal + totalDelivery + camion;
+        const totalLocal = ventaLocal * PRECIO_LOCAL;
+        const totalDeliveryMonto = totalDelivery * PRECIO_DELIVERY;
+        const totalCamion = camion * PRECIO_CAMION;
+        const totalGeneral = totalLocal + totalDeliveryMonto + totalCamion;
 
-  const totalBotellones = ventaLocal + totalDelivery + camion;
-  const totalLocal = ventaLocal * PRECIO_LOCAL;
-  const totalDeliveryMonto = totalDelivery * PRECIO_DELIVERY;
-  const totalCamion = camion * PRECIO_CAMION;
-  const totalGeneral = totalLocal + totalDeliveryMonto + totalCamion;
+        const tiposActivos = [];
+        if (ventaLocal > 0) tiposActivos.push('Local');
+        if (totalDelivery > 0) tiposActivos.push('Delivery');
+        if (camion > 0) tiposActivos.push('Camión');
 
-  const tiposActivos = [];
-  if (ventaLocal > 0) tiposActivos.push('Local');
-  if (totalDelivery > 0) tiposActivos.push('Delivery');
-  if (camion > 0) tiposActivos.push('Camión');
+        const tipoServicio = tiposActivos.length === 0 ? '-' : (tiposActivos.length === 1 ? tiposActivos[0] : 'Mixto');
+        const precioUnitario = tiposActivos.length === 1
+          ? (tipoServicio === 'Local' ? `${formatCurrency(PRECIO_LOCAL)}` : tipoServicio === 'Delivery' ? `${formatCurrency(PRECIO_DELIVERY)}` : `${formatCurrency(PRECIO_CAMION)}`)
+          : 'Var.';
 
-  const tipoServicio =
-    tiposActivos.length === 0 ? '-' :
-    (tiposActivos.length === 1 ? tiposActivos[0] : 'Mixto');
+        const detallesEntregas = entregas.length > 0 ? entregas.map(e => `${e.nombre}(${e.cantidad})`).join(', ') : '';
 
-  const precioUnitario =
-    tiposActivos.length === 1
-      ? (tipoServicio === 'Local'
-          ? `${formatCurrency(PRECIO_LOCAL)}`
-          : tipoServicio === 'Delivery'
-            ? `${formatCurrency(PRECIO_DELIVERY)}`
-            : `${formatCurrency(PRECIO_CAMION)}`
-        )
-      : 'Var.';
+        const nuevaVenta = {
+          id: ++contadorVentas,
+          hora,
+          tipo: tipoServicio,
+          ventaLocal,
+          totalDelivery,
+          entregasDelivery: entregas,
+          detallesEntregas: detallesEntregas,
+          camion,
+          totalBotellones,
+          precioUnitario,
+          total: totalGeneral
+        };
 
-  const detallesEntregas = entregas.length > 0
-    ? entregas.map(e => `${e.nombre}(${e.cantidad})`).join(', ')
-    : '';
-
-  const nuevaVenta = {
-    id: ++contadorVentas,
-    hora,
-    fecha,
-    tipo: tipoServicio,
-    ventaLocal,
-    totalDelivery,
-    entregasDelivery: entregas,
-    detallesEntregas,
-    camion,
-    totalBotellones,
-    precioUnitario,
-    total: totalGeneral
-  };
-
-  // 🔹 Guardar localmente (como ya hacías)
-  ventasDelDia.push(nuevaVenta);
-  actualizarTablaRegistros();
-  actualizarTotalDiario();
-  guardarEnStorage();
-
-  // 🔹 Guardar también en Firestore
-  try {
-   await addDoc(ventasRef, nuevaVenta);
-    console.log("✅ Venta guardada en Firestore correctamente");
-  } catch (error) {
-    console.error("❌ Error al guardar en Firestore:", error);
-  }
-
-  // 🔹 Guardar también en Firestore
-ventasRef.add(nuevaVenta)
-  .then(() => {
-    console.log("✅ Venta guardada en Firestore");
-  })
-  .catch((error) => {
-    console.error("❌ Error al guardar en Firestore:", error);
-  });
-
-
-  // 🔹 Limpiar formulario al final
-  limpiarFormulario();
-};
-
+        ventasDelDia.push(nuevaVenta);
+        actualizarTablaRegistros();
+        actualizarTotalDiario();
+        guardarEnStorage();
+        limpiarFormulario();
 
         // Feedback visual
         const btnGuardar = document.querySelector('.btn-save');
@@ -276,7 +214,7 @@ ventasRef.add(nuevaVenta)
         btnGuardar.style.background = '#27ae60';
         btnGuardar.classList.add('success-animation');
         setTimeout(() => { btnGuardar.innerHTML = textoOriginal; btnGuardar.style.background = ''; btnGuardar.classList.remove('success-animation'); }, 1200);
-      
+      };
 
       // Guardar individual (ventaLocal, camion o empleado-<id>)
       window.guardarIndividual = function (campo) {
@@ -614,16 +552,3 @@ ventasRef.add(nuevaVenta)
 
       document.addEventListener('DOMContentLoaded', init);
     })();
-
-import { onSnapshot, query, orderBy } from "firebase/firestore";
-
-const q = query(ventasRef, orderBy("hora", "asc"));
-onSnapshot(q, (snapshot) => {
-  ventasDelDia = [];
-  snapshot.forEach(doc => {
-    ventasDelDia.push(doc.data());
-  });
-  actualizarTablaRegistros();
-  actualizarTotalDiario();
-});
-
