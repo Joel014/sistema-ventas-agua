@@ -1,5 +1,7 @@
 // Import the functions you need from the SDKs you need
     import { initializeApp } from "firebase/app";
+    import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "firebase/firestore";
+
     // TODO: Add SDKs for Firebase products that you want to use
     // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -15,6 +17,8 @@
 
     // Initialize Firebase
     const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const ventasRef = collection(db, "ventas");
     
     // Encapsular todo para evitar fugas globales
     (function () {
@@ -244,11 +248,21 @@
 
   // 🔹 Guardar también en Firestore
   try {
-    await ventasRef.add(nuevaVenta);
+   await addDoc(ventasRef, nuevaVenta);
     console.log("✅ Venta guardada en Firestore correctamente");
   } catch (error) {
     console.error("❌ Error al guardar en Firestore:", error);
   }
+
+  // 🔹 Guardar también en Firestore
+ventasRef.add(nuevaVenta)
+  .then(() => {
+    console.log("✅ Venta guardada en Firestore");
+  })
+  .catch((error) => {
+    console.error("❌ Error al guardar en Firestore:", error);
+  });
+
 
   // 🔹 Limpiar formulario al final
   limpiarFormulario();
@@ -601,7 +615,10 @@
       document.addEventListener('DOMContentLoaded', init);
     })();
 
-    ventasRef.orderBy("hora", "asc").onSnapshot(snapshot => {
+import { onSnapshot, query, orderBy } from "firebase/firestore";
+
+const q = query(ventasRef, orderBy("hora", "asc"));
+onSnapshot(q, (snapshot) => {
   ventasDelDia = [];
   snapshot.forEach(doc => {
     ventasDelDia.push(doc.data());
@@ -609,3 +626,4 @@
   actualizarTablaRegistros();
   actualizarTotalDiario();
 });
+
