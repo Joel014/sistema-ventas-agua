@@ -392,6 +392,42 @@
       background: #f8f9fa;
     }
 
+    /* ==== COLORES POR TIPO DE REGISTRO ==== */
+    .records-table tr.venta-local {
+      background-color: #e8f5e9; /* Verde claro */
+      border-left: 4px solid #56ab2f;
+    }
+
+    .records-table tr.venta-delivery {
+      background-color: #e3f2fd; /* Azul claro */
+      border-left: 4px solid #1e88e5;
+    }
+
+    .records-table tr.venta-camion {
+      background-color: #fff3e0; /* Naranja claro */
+      border-left: 4px solid #f39c12;
+    }
+
+    .records-table tr.venta-otros {
+      background-color: #f3e5f5; /* Morado claro */
+      border-left: 4px solid #8e24aa;
+    }
+
+    .records-table tr.venta-gasto {
+      background-color: #ffebee; /* Rojo claro */
+      border-left: 4px solid #e53935;
+    }
+
+    /* ==== EFECTO VISUAL SOLO EN EL BODY ==== */
+    .records-table tbody tr {
+      transition: background-color 0.25s ease, transform 0.15s ease;
+    }
+
+    .records-table tbody tr:hover {
+      background-color: #f5f5f5;
+      transform: scale(1.01);
+    }
+    
     .daily-total {
       background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
       color: white;

@@ -1,4 +1,45 @@
-     // Encapsular todo para evitar fugas globales
+        // --- 🔥 CONFIGURACIÓN FIREBASE ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyCojK8pGgNKb9AhUHo50rgYiW769t_ljmk",
+      authDomain: "sistemaventasagua.firebaseapp.com",
+      projectId: "sistemaventasagua",
+      storageBucket: "sistemaventasagua.firebasestorage.app",
+      messagingSenderId: "699153205855",
+      appId: "1:699153205855:web:33455493ba6e40b4d029ea"
+    };
+
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+
+    // Inicializar Firestore
+    const db = firebase.firestore();
+    const ventasRef = db.collection("ventas");
+
+    // --- 🔹 FUNCIÓN PARA GUARDAR VENTA ---
+    window.guardarVenta = function () {
+      const ventaLocal = parseInt(document.getElementById('ventaLocal').value) || 0;
+      const camion = parseInt(document.getElementById('camion').value) || 0;
+
+      // Ejemplo simple (puedes incluir más datos luego)
+      const nuevaVenta = {
+        ventaLocal,
+        camion,
+        fecha: new Date(),
+      };
+
+      ventasRef.add(nuevaVenta)
+        .then(() => {
+          alert("✅ Venta guardada correctamente en Firestore");
+          console.log("Venta guardada:", nuevaVenta);
+        })
+        .catch((error) => {
+          console.error("❌ Error al guardar venta:", error);
+          alert("Ocurrió un error al guardar la venta");
+        });
+    };
+
+
+    // Encapsular todo para evitar fugas globales
     (function () {
       let ventasDelDia = [];
       let contadorVentas = 0;
@@ -254,25 +295,36 @@
             alert('Ingresa una cantidad mayor a 0 para camión');
             return;
           }
+
+          // 🔹 Obtener descripción del campo
+          const descripcion = document.getElementById('descripcionOtro').value.trim();
+
           const total = cantidad * PRECIO_CAMION;
           const venta = {
             id: ++contadorVentas,
             hora,
             tipo: 'Camión',
-            detalles: '-',
+            // 🔹 Guardamos la descripción si existe, o "-" si está vacío
+            detalles: descripcion || '-',
             cantidad,
             precioUnitario: `${formatCurrency(PRECIO_CAMION)}`,
             total
           };
+
           ventasDelDia.push(venta);
           actualizarTablaRegistros();
           actualizarTotalDiario();
           guardarEnStorage();
+
+          // 🔹 Limpiar los campos
           document.getElementById('camion').value = '';
-          limpiarFormulario(); // 🔹 agregado aquí
+          document.getElementById('descripcionOtro').value = ''; // <- limpiar descripción también
+
+          limpiarFormulario(); 
           mostrarConfirmacion('💾 Venta de camión guardada', '#f39c12');
           return;
         }
+
 
         // 🔹 Función para limpiar formulario y totales
       function limpiarFormulario() {
@@ -389,16 +441,17 @@
           const precioUnit = registro.precioUnitario || '-';
 
           return `
-            <tr>
-              <td>${registro.hora || '-'}</td>
-              <td><span class="service-type ${tipoClass}">${registro.tipo || '-'}</span></td>
-              <td style="font-size:.9em;">${detalles}</td>
-              <td>${cantidad}</td>
-              <td>${precioUnit}</td>
-              <td style="font-weight:700; color:${color};">${textoTotal}</td>
-              <td><button class="delete-btn" onclick="eliminarRegistro(${registro.id})">🗑️</button></td>
-            </tr>
-          `;
+          <tr class="venta-${tipoClass}">
+            <td>${registro.hora || '-'}</td>
+            <td><span class="service-type ${tipoClass}">${registro.tipo || '-'}</span></td>
+            <td style="font-size:.9em;">${detalles}</td>
+            <td>${cantidad}</td>
+            <td>${precioUnit}</td>
+            <td style="font-weight:700; color:${color};">${textoTotal}</td>
+            <td><button class="delete-btn" onclick="eliminarRegistro(${registro.id})">🗑️</button></td>
+          </tr>
+        `;
+
         }).join('');
       }
 

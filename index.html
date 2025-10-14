@@ -7,14 +7,16 @@
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#667eea">
-  <script src="script.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js');
-    }
-  </script>
 
+  <!-- Firebase App -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <!-- Firestore -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <!-- Tu script principal -->
+  <script src="script.js"></script>
 </head>
+
 <body>
   <div class="container">
     <!-- HEADER -->
@@ -43,6 +45,10 @@
             <div class="input-with-btn">
               <input type="number" id="camion" min="0" step="1" placeholder="0">
               <button type="button" class="save-inline-btn" onclick="guardarIndividual('camion')" title="Guardar venta camión">💾</button>
+            </div>
+            <div class="form-group">
+            <label for="descripcionOtro">📝 Descripción</label>
+            <input type="text" id="descripcionOtro" placeholder="Ej: Servicio especial" maxlength="50">
             </div>
           </div>
 
@@ -135,7 +141,7 @@
           
           <div class="form-group">
             <label for="descripcionOtro">📝 Descripción</label>
-            <input type="text" id="descripcionOtro" placeholder="Ej: Servicio especial, limpieza..." maxlength="50">
+            <input type="text" id="descripcionOtro" placeholder="Ej: Servicio especial" maxlength="50">
           </div>
         </div>
         
