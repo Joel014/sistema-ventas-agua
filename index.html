@@ -23,7 +23,23 @@
 </head>
 
 <body>
-    <div class="app-container">
+    <!-- Login View -->
+    <div id="view-login"
+        style="display:flex;height:100dvh;align-items:center;justify-content:center;background:var(--bg-dark)">
+        <div class="section-card" style="width:100%;max-width:400px;text-align:center">
+            <div class="brand" style="justify-content:center;margin-bottom:20px">
+                <img src="img/logo.png" alt="AWA Logo" style="max-height: 100px;">
+            </div>
+            <h2 style="margin-bottom:20px">Iniciar Sesión</h2>
+            <form id="loginForm" style="display:flex;flex-direction:column;gap:16px">
+                <input type="email" id="loginEmail" placeholder="Correo electrónico" required>
+                <input type="password" id="loginPass" placeholder="Contraseña" required>
+                <button type="submit" class="btn btn-primary full-width">Entrar</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="app-container" id="app-content" style="display:none">
         <!-- Sidebar / Navigation -->
         <nav class="sidebar">
             <div class="brand">
@@ -52,11 +68,8 @@
             </div>
 
             <div class="nav-footer">
-                <button class="btn-icon" id="exportCsv" title="Exportar CSV">
-                    <i class="bi bi-download"></i>
-                </button>
-                <button class="btn-icon danger" id="clearAll" title="Borrar Todo">
-                    <i class="bi bi-trash3-fill"></i>
+                <button class="btn-icon danger" id="btnLogout" title="Cerrar Sesión">
+                    <i class="bi bi-box-arrow-right"></i>
                 </button>
             </div>
         </nav>
@@ -319,7 +332,7 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/script.js"></script>
+    <script type="module" src="js/script.js"></script>
 </body>
 
 </html>
