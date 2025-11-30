@@ -48,13 +48,13 @@
 
             <div class="nav-links">
                 <button class="nav-btn active" data-tab="dashboard">
-                    <i class="bi bi-grid-1x2-fill"></i> Dashboard
+                    <i class="bi bi-grid-fill"></i> Dashboard
                 </button>
-                <button class="nav-btn" data-tab="ventas">
-                    <i class="bi bi-cart-plus-fill"></i> Ventas
+                <button class="nav-btn" data-tab="planta">
+                    <i class="bi bi-shop"></i> Planta
                 </button>
-                <button class="nav-btn" data-tab="gastos">
-                    <i class="bi bi-wallet2"></i> Gastos
+                <button class="nav-btn" data-tab="camion">
+                    <i class="bi bi-truck"></i> Camión
                 </button>
                 <button class="nav-btn" data-tab="reportes">
                     <i class="bi bi-graph-up-arrow"></i> Reportes
@@ -127,32 +127,21 @@
                 </div>
             </div>
 
-            <!-- Ventas View -->
-            <div id="view-ventas" class="view">
+            <!-- Planta View (Local + Delivery + Gastos) -->
+            <div id="view-planta" class="view">
                 <div class="sales-grid">
-                    <!-- Quick Sales -->
+                    <!-- Local Sales -->
                     <div class="section-card">
-                        <h3><i class="bi bi-shop"></i> Venta Rápida</h3>
+                        <h3><i class="bi bi-shop"></i> Venta Local</h3>
                         <div class="quick-actions">
                             <div class="action-group">
-                                <label>Local (<span id="priceLocal">25</span> RD$)</label>
+                                <label>Botellón (<span id="priceLocal">25</span> RD$)</label>
                                 <div class="input-group">
                                     <input type="number" id="qtyLocal" placeholder="Cant." min="1">
                                     <button class="btn btn-primary" id="btnLocal">
                                         <i class="bi bi-plus-lg"></i> Agregar
                                     </button>
                                 </div>
-                            </div>
-                            <div class="action-group">
-                                <label>Camión (<span id="priceCamion">30</span> RD$)</label>
-                                <div class="input-group">
-                                    <input type="number" id="qtyCamion" placeholder="Cant." min="1">
-                                    <button class="btn btn-primary" id="btnCamion">
-                                        <i class="bi bi-truck"></i> Agregar
-                                    </button>
-                                </div>
-                                <input type="text" id="commentCamion" placeholder="Comentario (opcional)"
-                                    style="margin-top:8px">
                             </div>
                         </div>
 
@@ -169,45 +158,79 @@
                                 </button>
                             </div>
                         </div>
-
-                        <div class="date-override">
-                            <label><i class="bi bi-calendar-event"></i> Fecha de registro</label>
-                            <input type="date" id="saleDate">
-                        </div>
                     </div>
 
                     <!-- Delivery -->
                     <div class="section-card">
                         <div class="card-header">
-                            <h3><i class="bi bi-people-fill"></i> Repartidores</h3>
+                            <h3><i class="bi bi-people-fill"></i> Delivery</h3>
                             <button class="btn btn-sm btn-outline" id="btnAddRepartidor">
                                 <i class="bi bi-person-plus-fill"></i> Nuevo
                             </button>
                         </div>
-
                         <div class="repartidores-list" id="repartidoresList">
                             <!-- Dynamic cards -->
+                        </div>
+                    </div>
+
+                    <!-- Gastos Planta -->
+                    <div class="section-card">
+                        <h3><i class="bi bi-cash-coin"></i> Registrar Gasto (Planta)</h3>
+                        <div class="form-stack">
+                            <div class="form-group">
+                                <label>Monto (RD$)</label>
+                                <input type="number" id="gastoMontoPlanta" placeholder="0.00" step="0.01">
+                            </div>
+                            <div class="form-group">
+                                <label>Descripción</label>
+                                <textarea id="gastoDescPlanta" rows="2"
+                                    placeholder="Ej: Comida, Limpieza..."></textarea>
+                            </div>
+                            <button class="btn btn-warning full-width" id="btnGastoPlanta">
+                                <i class="bi bi-save"></i> Guardar Gasto
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Gastos View -->
-            <div id="view-gastos" class="view">
-                <div class="center-card section-card">
-                    <h3><i class="bi bi-cash-coin"></i> Registrar Gasto</h3>
-                    <div class="form-stack">
-                        <div class="form-group">
-                            <label>Monto (RD$)</label>
-                            <input type="number" id="gastoMonto" placeholder="0.00" step="0.01">
+            <!-- Camion View (Ruta + Gastos) -->
+            <div id="view-camion" class="view">
+                <div class="sales-grid">
+                    <!-- Camion Sales -->
+                    <div class="section-card">
+                        <h3><i class="bi bi-truck"></i> Venta en Ruta</h3>
+                        <div class="quick-actions">
+                            <div class="action-group">
+                                <label>Botellón (<span id="priceCamion">30</span> RD$)</label>
+                                <div class="input-group">
+                                    <input type="number" id="qtyCamion" placeholder="Cant." min="1">
+                                    <button class="btn btn-primary" id="btnCamion">
+                                        <i class="bi bi-plus-lg"></i> Agregar
+                                    </button>
+                                </div>
+                                <input type="text" id="commentCamion" placeholder="Comentario (opcional)"
+                                    style="margin-top:8px">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>Descripción</label>
-                            <textarea id="gastoDesc" rows="3" placeholder="Ej: Gasolina, Mantenimiento..."></textarea>
+                    </div>
+
+                    <!-- Gastos Camion -->
+                    <div class="section-card">
+                        <h3><i class="bi bi-fuel-pump"></i> Gasto de Ruta</h3>
+                        <div class="form-stack">
+                            <div class="form-group">
+                                <label>Monto (RD$)</label>
+                                <input type="number" id="gastoMontoCamion" placeholder="0.00" step="0.01">
+                            </div>
+                            <div class="form-group">
+                                <label>Descripción</label>
+                                <textarea id="gastoDescCamion" rows="2" placeholder="Ej: Gasolina, Goma..."></textarea>
+                            </div>
+                            <button class="btn btn-warning full-width" id="btnGastoCamion">
+                                <i class="bi bi-save"></i> Guardar Gasto
+                            </button>
                         </div>
-                        <button class="btn btn-warning full-width" id="btnGasto">
-                            <i class="bi bi-save"></i> Guardar Gasto
-                        </button>
                     </div>
                 </div>
             </div>
@@ -282,6 +305,7 @@
                                     <th>Tipo</th>
                                     <th>Detalle</th>
                                     <th class="text-right">Cant.</th>
+                                    <th class="text-right">Precio Unit.</th>
                                     <th class="text-right">Total</th>
                                     <th></th>
                                 </tr>

@@ -84,6 +84,35 @@ class Store {
             return false;
         }
     }
+
+    getReportData(start, end) {
+        const filtered = this.state.registros.filter(r => {
+            if (!start && !end) return true;
+            if (start && r.fecha < start) return false;
+            // Add 1 day to end date to include it fully
+            if (end) {
+                const endDate = new Date(end);
+                endDate.setDate(endDate.getDate() + 1);
+                if (new Date(r.fecha) >= endDate) return false;
+            }
+            return true;
+        });
+
+        const byDate = {};
+        filtered.forEach(r => {
+            const dateKey = r.fecha.slice(0, 10);
+            if (!byDate[dateKey]) byDate[dateKey] = 0;
+            byDate[dateKey] += r.total;
+        });
+
+        return {
+            labels: Object.keys(byDate).sort(),
+            values: Object.keys(byDate).sort().map(d => byDate[d]),
+            total: filtered.reduce((s, r) => s + r.total, 0),
+            ventasCount: filtered.filter(r => r.total > 0).length,
+            gastosCount: filtered.filter(r => r.total < 0).length
+        };
+    }
 }
 
 // --- UI HANDLER ---
@@ -105,6 +134,11 @@ class UI {
             historyTableBody: document.getElementById('historyTableBody'),
             topRepartidores: document.getElementById('topRepartidores'),
 
+            // Reports
+            reportTotal: document.getElementById('reportTotal'),
+            reportVentas: document.getElementById('reportVentas'),
+            reportGastos: document.getElementById('reportGastos'),
+
             // Inputs
             dateDisplay: document.getElementById('currentDate'),
 
@@ -113,6 +147,7 @@ class UI {
             appContent: document.getElementById('app-content'),
             sidebar: document.querySelector('.sidebar')
         };
+        this.chart = null;
     }
 
     showView(viewId) {
@@ -139,7 +174,10 @@ class UI {
                     <div style="font-weight:600">${r.detalle}</div>
                     <div style="font-size:12px;color:var(--text-muted)">${new Date(r.fecha).toLocaleTimeString()}</div>
                 </div>
-                <div style="font-weight:700;color:var(--success)">+${r.cantidad}</div>
+                <div class="text-right">
+                    <div style="font-weight:700;color:var(--success)">+${r.cantidad}</div>
+                    <div style="font-size:12px;color:var(--text-muted)">${this.formatCurrency(r.total)}</div>
+                </div>
             </div>
         `).join('');
     }
@@ -162,13 +200,16 @@ class UI {
     }
 
     renderHistory(registros, onDelete) {
-        this.elements.historyTableBody.innerHTML = registros.map(r => `
+        this.elements.historyTableBody.innerHTML = registros.map(r => {
+            const unitPrice = r.cantidad > 0 ? r.total / r.cantidad : 0;
+            return `
             <tr>
                 <td>${new Date(r.fecha).toLocaleDateString()}</td>
                 <td>${new Date(r.fecha).toLocaleTimeString()}</td>
                 <td><span class="badge ${r.tipo}">${r.tipo}</span></td>
                 <td>${r.detalle}</td>
                 <td class="text-right">${r.cantidad}</td>
+                <td class="text-right">${this.formatCurrency(unitPrice)}</td>
                 <td class="text-right">${this.formatCurrency(r.total)}</td>
                 <td>
                     <button class="btn-icon danger" onclick="window.app.deleteRegistro('${r.id}')">
@@ -176,7 +217,8 @@ class UI {
                     </button>
                 </td>
             </tr>
-        `).join('');
+            `;
+        }).join('');
     }
 
     showToast(title, icon = 'success') {
@@ -207,15 +249,15 @@ class UI {
     }
 
     applyRole(role) {
-        const allTabs = ['dashboard', 'ventas', 'gastos', 'reportes', 'historial', 'config'];
+        const allTabs = ['dashboard', 'planta', 'camion', 'reportes', 'historial', 'config'];
         let allowedTabs = [];
 
         if (role === 'admin') {
             allowedTabs = allTabs;
         } else if (role === 'planta') {
-            allowedTabs = ['ventas', 'gastos', 'historial'];
+            allowedTabs = ['planta', 'historial'];
         } else if (role === 'camion') {
-            allowedTabs = ['ventas'];
+            allowedTabs = ['camion'];
         }
 
         // Hide/Show Sidebar Tabs
@@ -227,6 +269,54 @@ class UI {
                 btn.style.display = 'none';
             }
         });
+    }
+
+    renderChart(start = null, end = null) {
+        const canvas = document.getElementById('mainChart');
+        if (!canvas) return;
+
+        // Get data from store via global app instance (a bit hacky but works for this structure)
+        const data = window.app.store.getReportData(start, end);
+        const ctx = canvas.getContext('2d');
+
+        if (this.chart) this.chart.destroy();
+
+        this.chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.labels,
+                datasets: [{
+                    label: 'Ventas (RD$)',
+                    data: data.values,
+                    backgroundColor: 'rgba(0, 194, 255, 0.5)',
+                    borderColor: '#00C2FF',
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { labels: { color: '#94a3b8' } }
+                },
+                scales: {
+                    y: {
+                        grid: { color: 'rgba(148, 163, 184, 0.1)' },
+                        ticks: { color: '#94a3b8' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#94a3b8' }
+                    }
+                }
+            }
+        });
+
+        // Update summary stats
+        if (this.elements.reportTotal) this.elements.reportTotal.textContent = data.total.toFixed(2);
+        if (this.elements.reportVentas) this.elements.reportVentas.textContent = data.ventasCount;
+        if (this.elements.reportGastos) this.elements.reportGastos.textContent = data.gastosCount;
     }
 }
 
@@ -249,7 +339,12 @@ class App {
         this.ui.applyRole(role);
         this.store.initRealtimeUpdates();
         this.store.subscribe((state) => this.refreshUI(state));
-        this.ui.showView(role === 'camion' ? 'ventas' : 'dashboard');
+
+        let defaultView = 'dashboard';
+        if (role === 'planta') defaultView = 'planta';
+        if (role === 'camion') defaultView = 'camion';
+
+        this.ui.showView(defaultView);
     }
 
     onLogout() {
@@ -281,15 +376,79 @@ class App {
         });
 
         // Quick Actions
-        document.getElementById('btnLocal').addEventListener('click', () => this.addVenta('local'));
-        document.getElementById('btnCamion').addEventListener('click', () => this.addVenta('camion'));
-        document.getElementById('btnOtro').addEventListener('click', () => this.addVenta('otro'));
+        const safeAdd = (id, fn) => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('click', fn);
+        };
 
-        // Gastos
-        document.getElementById('btnGasto').addEventListener('click', () => this.addGasto());
+        safeAdd('btnLocal', () => this.addVenta('local'));
+        safeAdd('btnCamion', () => this.addVenta('camion'));
+        safeAdd('btnOtro', () => this.addVenta('otro'));
+
+        // Gastos (Planta & Camion)
+        safeAdd('btnGastoPlanta', () => this.addGasto('Planta'));
+        safeAdd('btnGastoCamion', () => this.addGasto('Camion'));
 
         // Repartidor
-        document.getElementById('btnAddRepartidor').addEventListener('click', () => this.addRepartidor());
+        safeAdd('btnAddRepartidor', () => this.addRepartidor());
+
+        // Reports
+        document.getElementById('btnFilterReport').addEventListener('click', () => {
+            const start = document.getElementById('reportStart').value;
+            const end = document.getElementById('reportEnd').value;
+            this.ui.renderChart(start, end);
+        });
+
+        document.getElementById('btnResetReport').addEventListener('click', () => {
+            document.getElementById('reportStart').value = '';
+            document.getElementById('reportEnd').value = '';
+            this.ui.renderChart();
+        });
+
+        // Swipe Navigation
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        document.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        document.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, { passive: true });
+
+        const handleSwipe = () => {
+            const SWIPE_THRESHOLD = 50;
+            if (touchEndX < touchStartX - SWIPE_THRESHOLD) {
+                // Swipe Left (Next Tab)
+                this.navigateTabs(1);
+            }
+            if (touchEndX > touchStartX + SWIPE_THRESHOLD) {
+                // Swipe Right (Prev Tab)
+                this.navigateTabs(-1);
+            }
+        };
+    }
+
+    navigateTabs(direction) {
+        // Get all visible tabs
+        const visibleTabs = Array.from(this.ui.elements.navBtns)
+            .filter(btn => btn.style.display !== 'none')
+            .map(btn => btn.dataset.tab);
+
+        // Find current active tab
+        const currentTab = document.querySelector('.view.active').id.replace('view-', '');
+        const currentIndex = visibleTabs.indexOf(currentTab);
+
+        if (currentIndex === -1) return;
+
+        let nextIndex = currentIndex + direction;
+
+        // Bounds check
+        if (nextIndex >= 0 && nextIndex < visibleTabs.length) {
+            this.ui.showView(visibleTabs[nextIndex]);
+        }
     }
 
     refreshUI(state) {
@@ -306,12 +465,20 @@ class App {
         this.ui.updateDashboard(stats, todaySales.slice(0, 5));
         this.ui.renderRepartidores(state.empleados);
         this.ui.renderHistory(state.registros);
+
+        // Update chart if on reports view
+        const reportView = document.getElementById('view-reportes');
+        if (reportView && reportView.classList.contains('active')) {
+            this.ui.renderChart();
+        }
     }
 
     async addVenta(type) {
-        const date = document.getElementById('saleDate').value || new Date().toISOString();
+        const dateInput = document.getElementById('saleDate');
+        const date = dateInput ? dateInput.value : new Date().toISOString();
+
         let venta = {
-            fecha: date,
+            fecha: date || new Date().toISOString(),
             tipo: type,
             usuario: this.auth.currentUser.email
         };
@@ -373,9 +540,14 @@ class App {
         }
     }
 
-    async addGasto() {
-        const monto = parseFloat(document.getElementById('gastoMonto').value);
-        const desc = document.getElementById('gastoDesc').value;
+    async addGasto(suffix) {
+        const montoInput = document.getElementById(`gastoMonto${suffix}`);
+        const descInput = document.getElementById(`gastoDesc${suffix}`);
+
+        if (!montoInput || !descInput) return;
+
+        const monto = parseFloat(montoInput.value);
+        const desc = descInput.value;
 
         if (!monto || !desc) return this.ui.showToast('Completa los campos', 'warning');
 
@@ -383,13 +555,14 @@ class App {
             fecha: new Date().toISOString(),
             monto,
             descripcion: desc,
+            origen: suffix, // 'Planta' or 'Camion'
             usuario: this.auth.currentUser.email
         };
 
         if (await this.store.addGasto(gasto)) {
             this.ui.showToast('Gasto guardado');
-            document.getElementById('gastoMonto').value = '';
-            document.getElementById('gastoDesc').value = '';
+            montoInput.value = '';
+            descInput.value = '';
         }
     }
 
