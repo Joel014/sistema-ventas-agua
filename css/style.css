@@ -606,7 +606,7 @@ label {
         background-repeat: no-repeat;
         background-position: center;
         background-size: 80%;
-        opacity: 0.2;
+        opacity: 0.15;
         z-index: -1;
         pointer-events: none;
     }
@@ -698,7 +698,9 @@ label {
 }
 
 .section-card {
-    background: var(--bg-card);
+    background: rgba(30, 41, 59, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 24px;

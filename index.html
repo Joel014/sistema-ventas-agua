@@ -56,14 +56,14 @@
                 <button class="nav-btn" data-tab="camion">
                     <i class="bi bi-truck"></i> Camión
                 </button>
+                <button class="nav-btn" data-tab="gastos">
+                    <i class="bi bi-wallet2"></i> Gastos
+                </button>
                 <button class="nav-btn" data-tab="reportes">
                     <i class="bi bi-graph-up-arrow"></i> Reportes
                 </button>
                 <button class="nav-btn" data-tab="historial">
                     <i class="bi bi-clock-history"></i> Historial
-                </button>
-                <button class="nav-btn" data-tab="config">
-                    <i class="bi bi-gear-fill"></i> Datos
                 </button>
             </div>
 
@@ -81,13 +81,17 @@
                     <h2 id="pageTitle">Dashboard</h2>
                     <div class="date-display" id="currentDate"></div>
                 </div>
-                <div class="mobile-actions">
-                    <button class="btn-icon" id="exportCsvMobile" title="Exportar CSV">
-                        <i class="bi bi-download"></i>
+                <div class="header-actions" style="display:flex;gap:10px">
+                    <!-- Backup Controls -->
+                    <button class="btn-icon" onclick="window.app.exportData()" title="Descargar Copia de Seguridad">
+                        <i class="bi bi-cloud-download-fill"></i>
                     </button>
-                    <button class="btn-icon danger" id="clearAllMobile" title="Borrar Todo">
-                        <i class="bi bi-trash3-fill"></i>
+                    <button class="btn-icon warning" onclick="document.getElementById('restoreFileHeader').click()"
+                        title="Restaurar Datos">
+                        <i class="bi bi-cloud-upload-fill"></i>
                     </button>
+                    <input type="file" id="restoreFileHeader" accept=".json" style="display:none"
+                        onchange="window.app.restoreData(this)">
                 </div>
             </header>
 
@@ -96,21 +100,21 @@
             <!-- Dashboard View -->
             <div id="view-dashboard" class="view active">
                 <div class="stats-grid">
-                    <div class="stat-card primary">
-                        <div class="icon-box"><i class="bi bi-currency-dollar"></i></div>
+                    <div class="stat-card">
+                        <div class="icon-box"><i class="bi bi-cash-stack"></i></div>
                         <div class="stat-info">
-                            <span class="label">Total del Día</span>
-                            <span class="value" id="dashTotal">$0.00</span>
+                            <span class="label">Venta Total</span>
+                            <span class="value" id="dashTotal">RD$ 0.00</span>
                         </div>
                     </div>
-                    <div class="stat-card success">
+                    <div class="stat-card">
                         <div class="icon-box"><i class="bi bi-droplet-fill"></i></div>
                         <div class="stat-info">
                             <span class="label">Botellones</span>
                             <span class="value" id="dashBotellones">0</span>
                         </div>
                     </div>
-                    <div class="stat-card warning">
+                    <div class="stat-card">
                         <div class="icon-box"><i class="bi bi-receipt"></i></div>
                         <div class="stat-info">
                             <span class="label">Transacciones</span>
@@ -119,10 +123,10 @@
                     </div>
                 </div>
 
-                <div class="recent-activity section-card">
-                    <h3><i class="bi bi-activity"></i> Actividad Reciente</h3>
-                    <div class="activity-list" id="recentActivityList">
-                        <!-- Dynamic content -->
+                <div class="section-card">
+                    <h3>Actividad Reciente</h3>
+                    <div id="recentActivityList">
+                        <!-- Dynamic -->
                     </div>
                 </div>
             </div>
@@ -172,29 +176,10 @@
                             <!-- Dynamic cards -->
                         </div>
                     </div>
-
-                    <!-- Gastos Planta -->
-                    <div class="section-card">
-                        <h3><i class="bi bi-cash-coin"></i> Registrar Gasto (Planta)</h3>
-                        <div class="form-stack">
-                            <div class="form-group">
-                                <label>Monto (RD$)</label>
-                                <input type="number" id="gastoMontoPlanta" placeholder="0.00" step="0.01">
-                            </div>
-                            <div class="form-group">
-                                <label>Descripción</label>
-                                <textarea id="gastoDescPlanta" rows="2"
-                                    placeholder="Ej: Comida, Limpieza..."></textarea>
-                            </div>
-                            <button class="btn btn-warning full-width" id="btnGastoPlanta">
-                                <i class="bi bi-save"></i> Guardar Gasto
-                            </button>
-                        </div>
-                    </div>
                 </div>
             </div>
 
-            <!-- Camion View (Ruta + Gastos) -->
+            <!-- Camion View (Ruta) -->
             <div id="view-camion" class="view">
                 <div class="sales-grid">
                     <!-- Camion Sales -->
@@ -214,23 +199,25 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
 
-                    <!-- Gastos Camion -->
-                    <div class="section-card">
-                        <h3><i class="bi bi-fuel-pump"></i> Gasto de Ruta</h3>
-                        <div class="form-stack">
-                            <div class="form-group">
-                                <label>Monto (RD$)</label>
-                                <input type="number" id="gastoMontoCamion" placeholder="0.00" step="0.01">
-                            </div>
-                            <div class="form-group">
-                                <label>Descripción</label>
-                                <textarea id="gastoDescCamion" rows="2" placeholder="Ej: Gasolina, Goma..."></textarea>
-                            </div>
-                            <button class="btn btn-warning full-width" id="btnGastoCamion">
-                                <i class="bi bi-save"></i> Guardar Gasto
-                            </button>
+            <!-- Gastos View (Shared) -->
+            <div id="view-gastos" class="view">
+                <div class="center-card section-card">
+                    <h3><i class="bi bi-cash-coin"></i> Registrar Gasto</h3>
+                    <div class="form-stack">
+                        <div class="form-group">
+                            <label>Monto (RD$)</label>
+                            <input type="number" id="gastoMonto" placeholder="0.00" step="0.01">
                         </div>
+                        <div class="form-group">
+                            <label>Descripción</label>
+                            <textarea id="gastoDesc" rows="3" placeholder="Ej: Gasolina, Comida..."></textarea>
+                        </div>
+                        <button class="btn btn-warning full-width" id="btnGasto">
+                            <i class="bi bi-save"></i> Guardar Gasto
+                        </button>
                     </div>
                 </div>
             </div>

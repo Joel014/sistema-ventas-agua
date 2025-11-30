@@ -187,7 +187,9 @@ class UI {
             <div class="emp-card">
                 <div class="emp-header">
                     <span>${emp.nombre}</span>
-                    <i class="bi bi-person-badge"></i>
+                    <button class="btn-icon danger small" onclick="window.app.deleteRepartidor('${emp.id}')" style="padding:0;width:24px;height:24px;min-width:auto;">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
                 </div>
                 <div class="emp-actions">
                     <input type="number" id="qty-${emp.id}" placeholder="Cant." class="form-control" style="width: 70px; padding: 4px 8px; font-size: 13px;">
@@ -212,8 +214,8 @@ class UI {
                 <td class="text-right">${this.formatCurrency(unitPrice)}</td>
                 <td class="text-right">${this.formatCurrency(r.total)}</td>
                 <td>
-                    <button class="btn-icon danger" onclick="window.app.deleteRegistro('${r.id}')">
-                        <i class="bi bi-trash"></i>
+                    <button class="btn btn-sm btn-outline danger" onclick="window.app.deleteRegistro('${r.id}')" style="border-color:var(--danger);color:var(--danger)">
+                        <i class="bi bi-trash"></i> Borrar
                     </button>
                 </td>
             </tr>
@@ -249,15 +251,15 @@ class UI {
     }
 
     applyRole(role) {
-        const allTabs = ['dashboard', 'planta', 'camion', 'reportes', 'historial', 'config'];
+        const allTabs = ['dashboard', 'planta', 'camion', 'gastos', 'reportes', 'historial'];
         let allowedTabs = [];
 
         if (role === 'admin') {
             allowedTabs = allTabs;
         } else if (role === 'planta') {
-            allowedTabs = ['planta', 'historial'];
+            allowedTabs = ['planta', 'gastos', 'historial'];
         } else if (role === 'camion') {
-            allowedTabs = ['camion'];
+            allowedTabs = ['camion', 'gastos'];
         }
 
         // Hide/Show Sidebar Tabs
@@ -385,9 +387,8 @@ class App {
         safeAdd('btnCamion', () => this.addVenta('camion'));
         safeAdd('btnOtro', () => this.addVenta('otro'));
 
-        // Gastos (Planta & Camion)
-        safeAdd('btnGastoPlanta', () => this.addGasto('Planta'));
-        safeAdd('btnGastoCamion', () => this.addGasto('Camion'));
+        // Gastos
+        safeAdd('btnGasto', () => this.addGasto());
 
         // Repartidor
         safeAdd('btnAddRepartidor', () => this.addRepartidor());
@@ -400,10 +401,20 @@ class App {
         });
 
         document.getElementById('btnResetReport').addEventListener('click', () => {
-            document.getElementById('reportStart').value = '';
-            document.getElementById('reportEnd').value = '';
-            this.ui.renderChart();
+            const today = new Date().toISOString().slice(0, 10);
+            document.getElementById('reportStart').value = today;
+            document.getElementById('reportEnd').value = today;
+            this.ui.renderChart(today, today);
         });
+
+        // Initialize reports with today's date
+        const today = new Date().toISOString().slice(0, 10);
+        const startInput = document.getElementById('reportStart');
+        const endInput = document.getElementById('reportEnd');
+        if (startInput && endInput) {
+            startInput.value = today;
+            endInput.value = today;
+        }
 
         // Swipe Navigation
         let touchStartX = 0;
@@ -417,6 +428,13 @@ class App {
             touchEndX = e.changedTouches[0].screenX;
             handleSwipe();
         }, { passive: true });
+
+        // Prevent swipe when scrolling table
+        const tableContainer = document.querySelector('.table-responsive');
+        if (tableContainer) {
+            tableContainer.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
+            tableContainer.addEventListener('touchend', e => e.stopPropagation(), { passive: true });
+        }
 
         const handleSwipe = () => {
             const SWIPE_THRESHOLD = 50;
@@ -540,9 +558,9 @@ class App {
         }
     }
 
-    async addGasto(suffix) {
-        const montoInput = document.getElementById(`gastoMonto${suffix}`);
-        const descInput = document.getElementById(`gastoDesc${suffix}`);
+    async addGasto() {
+        const montoInput = document.getElementById('gastoMonto');
+        const descInput = document.getElementById('gastoDesc');
 
         if (!montoInput || !descInput) return;
 
@@ -551,11 +569,15 @@ class App {
 
         if (!monto || !desc) return this.ui.showToast('Completa los campos', 'warning');
 
+        // Infer origin from role
+        const role = this.auth.userRole;
+        const origen = role === 'camion' ? 'Ruta' : 'Planta';
+
         const gasto = {
             fecha: new Date().toISOString(),
             monto,
             descripcion: desc,
-            origen: suffix, // 'Planta' or 'Camion'
+            origen: origen,
             usuario: this.auth.currentUser.email
         };
 
@@ -576,6 +598,14 @@ class App {
 
         if (nombre) {
             this.store.addEmpleado(nombre);
+        }
+    }
+
+    async deleteRepartidor(id) {
+        if (confirm('¿Estás seguro de eliminar este repartidor?')) {
+            if (await this.store.deleteRegistro(id, 'empleados')) {
+                this.ui.showToast('Repartidor eliminado');
+            }
         }
     }
 
