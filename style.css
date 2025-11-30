@@ -757,3 +757,39 @@
         font-size: 0.85em;
       }
     }
+
+    /* BOTÓN SOLO EN MOBILE */
+    @media (max-width: 768px) {
+      .toggle-btn {
+        display: block;
+        width: 100%;
+        padding: 10px;
+        font-size: 1em;
+        background: #4f46e5;
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .toggle-btn:hover {
+        background: #7c3aed;
+      }
+
+      /* Ocultar la tabla inicialmente */
+      .records-container {
+        display: none;
+      }
+    }
+
+    /* En desktop, el botón desaparece */
+    @media (min-width: 769px) {
+      .toggle-btn {
+        display: none;
+      }
+      .records-container {
+        display: block !important;
+      }
+    }

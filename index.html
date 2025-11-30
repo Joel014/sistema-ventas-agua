@@ -1,196 +1,325 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema de Ventas - Agua Purificada</title>
-  <link rel="stylesheet" href="style.css">
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#667eea">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema AWA | Gestión de Ventas</title>
 
-  <!-- Firebase App -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <!-- Firestore -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- Tu script principal -->
-  <script src="script.js"></script>
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
-  <div class="container">
-    <!-- HEADER -->
-    <header class="header">
-      <h1>Sistema de Ventas</h1>
-      <p>Agua Purificada - Gestión Digital</p>
-    </header>
-
-    <main class="main-content">
-      <!-- SECCIÓN: NUEVA VENTA -->
-      <section class="form-section">
-        <h2>Nueva Venta</h2>
-        
-        <!-- Ventas Local y Camión -->
-        <div class="form-row">
-          <div class="form-group">
-            <label for="ventaLocal">🏪 Venta Local (25 pesos)</label>
-            <div class="input-with-btn">
-              <input type="number" id="ventaLocal" min="0" step="1" placeholder="0">
-              <button type="button" class="save-inline-btn" onclick="guardarIndividual('ventaLocal')" title="Guardar venta local">💾</button>
+    <div class="app-container">
+        <!-- Sidebar / Navigation -->
+        <nav class="sidebar">
+            <div class="brand">
+                <img src="img/logo.png" alt="AWA Logo" style="max-width: 100%; height: auto; max-height: 150px;">
             </div>
-          </div>
 
-          <div class="form-group">
-            <label for="camion">🚚 Camión (30 pesos)</label>
-            <div class="input-with-btn">
-              <input type="number" id="camion" min="0" step="1" placeholder="0">
-              <button type="button" class="save-inline-btn" onclick="guardarIndividual('camion')" title="Guardar venta camión">💾</button>
+            <div class="nav-links">
+                <button class="nav-btn active" data-tab="dashboard">
+                    <i class="bi bi-grid-1x2-fill"></i> Dashboard
+                </button>
+                <button class="nav-btn" data-tab="ventas">
+                    <i class="bi bi-cart-plus-fill"></i> Ventas
+                </button>
+                <button class="nav-btn" data-tab="gastos">
+                    <i class="bi bi-wallet2"></i> Gastos
+                </button>
+                <button class="nav-btn" data-tab="reportes">
+                    <i class="bi bi-graph-up-arrow"></i> Reportes
+                </button>
+                <button class="nav-btn" data-tab="historial">
+                    <i class="bi bi-clock-history"></i> Historial
+                </button>
+                <button class="nav-btn" data-tab="config">
+                    <i class="bi bi-gear-fill"></i> Datos
+                </button>
             </div>
-            <div class="form-group">
-            <label for="descripcionOtro">📝 Descripción</label>
-            <input type="text" id="descripcionOtro" placeholder="Ej: Servicio especial" maxlength="50">
+
+            <div class="nav-footer">
+                <button class="btn-icon" id="exportCsv" title="Exportar CSV">
+                    <i class="bi bi-download"></i>
+                </button>
+                <button class="btn-icon danger" id="clearAll" title="Borrar Todo">
+                    <i class="bi bi-trash3-fill"></i>
+                </button>
             </div>
-          </div>
+        </nav>
 
-          <div class="form-group">
-            <label>Total Botellones</label>
-            <div class="price-display" id="totalBotellones">0</div>
-          </div>
-        </div>
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar">
+                <div>
+                    <h2 id="pageTitle">Dashboard</h2>
+                    <div class="date-display" id="currentDate"></div>
+                </div>
+                <div class="mobile-actions">
+                    <button class="btn-icon" id="exportCsvMobile" title="Exportar CSV">
+                        <i class="bi bi-download"></i>
+                    </button>
+                    <button class="btn-icon danger" id="clearAllMobile" title="Borrar Todo">
+                        <i class="bi bi-trash3-fill"></i>
+                    </button>
+                </div>
+            </header>
 
-        <!-- Subsección: Repartidores -->
-        <div class="delivery-section">
-          <h3>Repartidores (35 pesos)</h3>
+            <!-- VIEWS -->
 
-          <div class="delivery-input-container">
-            <label for="empleadoNombre" class="visually-hidden">Nombre del repartidor</label>
-            <input type="text" id="empleadoNombre" placeholder="Nombre del repartidor (ej. Juan Pérez)" maxlength="30">
-            <button type="button" class="add-employee-btn" onclick="agregarEmpleado()">+ Agregar repartidor</button>
-          </div>
+            <!-- Dashboard View -->
+            <div id="view-dashboard" class="view active">
+                <div class="stats-grid">
+                    <div class="stat-card primary">
+                        <div class="icon-box"><i class="bi bi-currency-dollar"></i></div>
+                        <div class="stat-info">
+                            <span class="label">Total del Día</span>
+                            <span class="value" id="dashTotal">$0.00</span>
+                        </div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="icon-box"><i class="bi bi-droplet-fill"></i></div>
+                        <div class="stat-info">
+                            <span class="label">Botellones</span>
+                            <span class="value" id="dashBotellones">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card warning">
+                        <div class="icon-box"><i class="bi bi-receipt"></i></div>
+                        <div class="stat-info">
+                            <span class="label">Transacciones</span>
+                            <span class="value" id="dashTransacciones">0</span>
+                        </div>
+                    </div>
+                </div>
 
-          <div class="employees-container" id="empleadosContainer">
-            <div style="color:#999; font-style:italic; grid-column:1 / -1">No hay repartidores agregados</div>
-          </div>
-        </div>
+                <div class="recent-activity section-card">
+                    <h3><i class="bi bi-activity"></i> Actividad Reciente</h3>
+                    <div class="activity-list" id="recentActivityList">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+            </div>
 
-        <!-- Resumen de Venta -->
-        <div class="form-row">
-          <div class="form-group">
-            <label>Precio por Servicio</label>
-            <div class="price-display" id="precioServicio">$0</div>
-          </div>
-          
-          <div class="form-group">
-            <label>Tipo de Servicio</label>
-            <div class="price-display" id="tipoServicio">-</div>
-          </div>
-          
-          <div class="form-group">
-            <label>Total a Pagar</label>
-            <div class="price-display" id="totalPagar">$0</div>
-          </div>
-        </div>
-      </section>
+            <!-- Ventas View -->
+            <div id="view-ventas" class="view">
+                <div class="sales-grid">
+                    <!-- Quick Sales -->
+                    <div class="section-card">
+                        <h3><i class="bi bi-shop"></i> Venta Rápida</h3>
+                        <div class="quick-actions">
+                            <div class="action-group">
+                                <label>Local (<span id="priceLocal">25</span> RD$)</label>
+                                <div class="input-group">
+                                    <input type="number" id="qtyLocal" placeholder="Cant." min="1">
+                                    <button class="btn btn-primary" id="btnLocal">
+                                        <i class="bi bi-plus-lg"></i> Agregar
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="action-group">
+                                <label>Camión (<span id="priceCamion">30</span> RD$)</label>
+                                <div class="input-group">
+                                    <input type="number" id="qtyCamion" placeholder="Cant." min="1">
+                                    <button class="btn btn-primary" id="btnCamion">
+                                        <i class="bi bi-truck"></i> Agregar
+                                    </button>
+                                </div>
+                                <input type="text" id="commentCamion" placeholder="Comentario (opcional)"
+                                    style="margin-top:8px">
+                            </div>
+                        </div>
 
-      <!-- SECCIÓN: TOTAL DE VENTA -->
-      <section class="total-section">
-        <div>Total de la Venta</div>
-        <div class="total-amount" id="montoFinal">$0</div>
-      </section>
+                        <div class="divider"></div>
 
-      <!-- SECCIÓN: BOTONES PRINCIPALES -->
-      <section class="buttons">
-        <button type="button" class="btn-save" onclick="guardarVenta()">💾 Guardar Venta</button>
-        <button type="button" class="btn-clear" onclick="limpiarFormulario()">🔄 Limpiar</button>
-        <button type="button" class="btn-export" onclick="exportarCSV()">📁 Exportar CSV</button>
-      </section>
+                        <div class="custom-sale">
+                            <label>Otro Servicio</label>
+                            <div class="input-row">
+                                <input type="text" id="descOtro" placeholder="Descripción" class="flex-2">
+                                <input type="number" id="priceOtro" placeholder="Precio" class="flex-1">
+                                <input type="number" id="qtyOtro" placeholder="Cant." class="flex-1">
+                                <button class="btn btn-success" id="btnOtro">
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                            </div>
+                        </div>
 
-      <!-- SECCIÓN: GASTOS -->
-      <section class="expenses-section">
-        <h3>💸 Registro de Gastos</h3>
-        
-        <div class="form-row">
-          <div class="form-group">
-            <label for="montoGasto">💰 Monto del Gasto</label>
-            <input type="number" id="montoGasto" min="0" placeholder="0" step="0.01">
-          </div>
-          
-          <div class="form-group" style="grid-column: span 2;">
-            <label for="notaGasto">📝 Descripción del Gasto</label>
-            <textarea id="notaGasto" placeholder="Ej: Compra de repuestos, gasolina, mantenimiento..." rows="3"></textarea>
-          </div>
-        </div>
-        
-        <button class="btn-warning" onclick="guardarGasto()">💾 Guardar Gasto</button>
-      </section>
+                        <div class="date-override">
+                            <label><i class="bi bi-calendar-event"></i> Fecha de registro</label>
+                            <input type="date" id="saleDate">
+                        </div>
+                    </div>
 
-      <!-- SECCIÓN: OTROS SERVICIOS -->
-      <section class="otros-section">
-        <h3>🔧 Otros Servicios</h3>
-        
-        <div class="form-row">
-          <div class="form-group">
-            <label for="precioOtro">💵 Precio Unitario</label>
-            <input type="number" id="precioOtro" min="1" step="0.01" placeholder="Ej: 25">
-          </div>
-          
-          <div class="form-group">
-            <label for="cantidadOtro">📦 Cantidad</label>
-            <input type="number" id="cantidadOtro" min="1" placeholder="0">
-          </div>
-          
-          <div class="form-group">
-            <label for="descripcionOtro">📝 Descripción</label>
-            <input type="text" id="descripcionOtro" placeholder="Ej: Servicio especial" maxlength="50">
-          </div>
-        </div>
-        
-        <button class="btn-info" onclick="guardarOtroServicio()">💾 Guardar Otro Servicio</button>
-      </section>
+                    <!-- Delivery -->
+                    <div class="section-card">
+                        <div class="card-header">
+                            <h3><i class="bi bi-people-fill"></i> Repartidores</h3>
+                            <button class="btn btn-sm btn-outline" id="btnAddRepartidor">
+                                <i class="bi bi-person-plus-fill"></i> Nuevo
+                            </button>
+                        </div>
 
-      <!-- SECCIÓN: REGISTRO DE VENTAS -->
-      <section class="records-section">
-        <div class="records-header">
-          <h2>📊 Ventas del Día</h2>
-          <button type="button" class="btn-clear" onclick="limpiarRegistros()" style="padding:8px 16px; font-size:.9em">
-            🗑️ Limpiar Todo
-          </button>
-        </div>
+                        <div class="repartidores-list" id="repartidoresList">
+                            <!-- Dynamic cards -->
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-        <table class="records-table">
-          <thead>
-            <tr>
-              <th>Hora</th>
-              <th>Tipo</th>
-              <th>Detalles</th>
-              <th>Cantidad</th>
-              <th>Precio Unit.</th>
-              <th>Total</th>
-              <th>Acción</th>
-            </tr>
-          </thead>
-          <tbody id="tablaRegistros">
-            <tr>
-              <td colspan="7" style="color:#888; font-style:italic; text-align:center">
-                No hay ventas registradas
-              </td>
-            </tr>
-          </tbody>
-        </table>
+            <!-- Gastos View -->
+            <div id="view-gastos" class="view">
+                <div class="center-card section-card">
+                    <h3><i class="bi bi-cash-coin"></i> Registrar Gasto</h3>
+                    <div class="form-stack">
+                        <div class="form-group">
+                            <label>Monto (RD$)</label>
+                            <input type="number" id="gastoMonto" placeholder="0.00" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label>Descripción</label>
+                            <textarea id="gastoDesc" rows="3" placeholder="Ej: Gasolina, Mantenimiento..."></textarea>
+                        </div>
+                        <button class="btn btn-warning full-width" id="btnGasto">
+                            <i class="bi bi-save"></i> Guardar Gasto
+                        </button>
+                    </div>
+                </div>
+            </div>
 
-        <!-- Resumen Diario -->
-        <div class="daily-total">
-          <h3>Total del Día: <span id="totalDiario">$0</span></h3>
-          <p>
-            Local: <span id="ventasLocal">0</span> | 
-            Delivery: <span id="ventasDelivery">0</span> | 
-            Camión: <span id="ventasCamion">0</span> | 
-            Total Botellones: <span id="botellonesTotal">0</span>
-          </p>
-        </div>
-      </section>
-    </main>
-    <script src="app.js"></script>
-  </div>
+            <!-- Reportes View -->
+            <div id="view-reportes" class="view">
+                <div class="filters-bar section-card">
+                    <div class="filter-group">
+                        <label>Desde</label>
+                        <input type="date" id="reportStart">
+                    </div>
+                    <div class="filter-group">
+                        <label>Hasta</label>
+                        <input type="date" id="reportEnd">
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn btn-primary" id="btnFilterReport">Filtrar</button>
+                        <button class="btn btn-outline" id="btnResetReport">Limpiar</button>
+                    </div>
+                </div>
+
+                <div class="report-grid">
+                    <div class="chart-card section-card">
+                        <canvas id="mainChart"></canvas>
+                    </div>
+                    <div class="summary-card section-card">
+                        <h3>Resumen del Periodo</h3>
+                        <div class="big-stat">
+                            <span class="currency">$</span>
+                            <span id="reportTotal">0.00</span>
+                        </div>
+                        <div class="mini-stats">
+                            <div class="mini-stat">
+                                <span class="label">Ventas</span>
+                                <span class="val" id="reportVentas">0</span>
+                            </div>
+                            <div class="mini-stat">
+                                <span class="label">Gastos</span>
+                                <span class="val" id="reportGastos">0</span>
+                            </div>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <h4>Top Repartidores (7 días)</h4>
+                        <div id="topRepartidores" class="top-list">
+                            <!-- Dynamic -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Historial View -->
+            <div id="view-historial" class="view">
+                <div class="section-card full-height">
+                    <div class="table-controls">
+                        <input type="text" id="searchHistory" placeholder="Buscar..." class="search-input">
+                        <select id="filterHistoryDate">
+                            <option value="all">Todos los días</option>
+                        </select>
+                    </div>
+                    <div id="historySummary"
+                        style="background:rgba(99,102,241,0.1);padding:12px;border-radius:10px;margin-bottom:12px;display:flex;gap:20px;font-weight:600;color:var(--primary)">
+                        <!-- Dynamic content -->
+                    </div>
+                    <div class="table-responsive">
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Hora</th>
+                                    <th>Tipo</th>
+                                    <th>Detalle</th>
+                                    <th class="text-right">Cant.</th>
+                                    <th class="text-right">Total</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody">
+                                <!-- Dynamic -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuración View -->
+            <div id="view-config" class="view">
+                <div class="section-card">
+                    <h3><i class="bi bi-shield-lock-fill"></i> Seguridad de Datos</h3>
+                    <p style="color:var(--text-muted);margin-bottom:20px">
+                        Descarga una copia de seguridad de tus datos para guardarla en un lugar seguro (USB, nube,
+                        etc.).
+                        Si cambias de computadora o se borran los datos, puedes usar el archivo descargado para
+                        restaurar todo.
+                    </p>
+
+                    <div class="stats-grid">
+                        <div class="stat-card primary" style="cursor:pointer" onclick="window.app.backupData()">
+                            <div class="icon-box"><i class="bi bi-cloud-download-fill"></i></div>
+                            <div class="stat-info">
+                                <span class="label">Paso 1</span>
+                                <span class="value" style="font-size:18px">Descargar Copia</span>
+                            </div>
+                        </div>
+
+                        <div class="stat-card warning" style="cursor:pointer"
+                            onclick="document.getElementById('restoreFile').click()">
+                            <div class="icon-box"><i class="bi bi-cloud-upload-fill"></i></div>
+                            <div class="stat-info">
+                                <span class="label">Paso 2</span>
+                                <span class="value" style="font-size:18px">Restaurar Datos</span>
+                            </div>
+                            <input type="file" id="restoreFile" accept=".json" style="display:none"
+                                onchange="window.app.restoreData(this)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/script.js"></script>
 </body>
+
 </html>
