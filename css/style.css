@@ -191,11 +191,14 @@ body {
 
 /* Cards & Sections */
 .section-card {
-    background: var(--bg-card);
+    background: rgba(30, 41, 59, 0.7);
+    /* Semi-transparent for blur */
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 24px;
+    padding: 20px;
+    margin-bottom: 24px;
     backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     box-shadow: var(--shadow);
 }
 
@@ -586,26 +589,27 @@ label {
     .main-content {
         order: 1;
         width: 100%;
-        padding: 16px;
+        padding: 80px 16px 16px 16px;
+        /* Increased top padding for fixed header */
         margin: 0;
         /* No margin-bottom needed as sidebar is flex item */
-
-        /* Logo Watermark */
         position: relative;
         z-index: 1;
     }
 
+    /* Fixed Background Logo */
     .main-content::before {
         content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 80%;
+        height: 80%;
         background-image: url('../img/logo.png');
         background-repeat: no-repeat;
         background-position: center;
-        background-size: 80%;
+        background-size: contain;
         opacity: 0.15;
         z-index: -1;
         pointer-events: none;
@@ -613,13 +617,23 @@ label {
 
     /* Header */
     .top-bar {
-        margin-bottom: 20px;
-        position: sticky;
+        position: fixed;
         top: 0;
-        background: var(--bg-dark);
-        z-index: 90;
-        padding: 10px 16px;
+        left: 0;
+        width: 100%;
+        margin: 0;
+        background: rgba(1, 22, 39, 0.95);
+        /* Semi-transparent background */
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        z-index: 1001;
+        /* Above sidebar/content */
+        padding: 16px;
         border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     }
 
     .top-bar h2 {

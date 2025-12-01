@@ -56,11 +56,13 @@ class Store {
     }
 
     async addGasto(gasto) {
+        console.log("Store: Adding gasto to Firestore...", gasto);
         try {
-            await addDoc(collection(db, "gastos"), gasto);
+            const docRef = await addDoc(collection(db, "gastos"), gasto);
+            console.log("Store: Gasto added with ID: ", docRef.id);
             return true;
         } catch (e) {
-            console.error("Error adding gasto: ", e);
+            console.error("Store: Error adding gasto: ", e);
             return false;
         }
     }
@@ -168,18 +170,25 @@ class UI {
         this.elements.dashBotellones.textContent = stats.botellones;
         this.elements.dashTransacciones.textContent = stats.transacciones;
 
-        this.elements.recentActivityList.innerHTML = recent.map(r => `
+        this.elements.recentActivityList.innerHTML = recent.map(r => {
+            const isGasto = r.type === 'gasto';
+            const color = isGasto ? 'var(--danger)' : 'var(--success)';
+            const sign = isGasto ? '-' : '+';
+            const amount = isGasto ? this.formatCurrency(Math.abs(r.total)) : `+${r.cantidad}`;
+
+            return `
             <div class="activity-item" style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
                 <div>
                     <div style="font-weight:600">${r.detalle}</div>
                     <div style="font-size:12px;color:var(--text-muted)">${new Date(r.fecha).toLocaleTimeString()}</div>
                 </div>
                 <div class="text-right">
-                    <div style="font-weight:700;color:var(--success)">+${r.cantidad}</div>
-                    <div style="font-size:12px;color:var(--text-muted)">${this.formatCurrency(r.total)}</div>
+                    <div style="font-weight:700;color:${color}">${amount}</div>
+                    ${!isGasto ? `<div style="font-size:12px;color:var(--text-muted)">${this.formatCurrency(r.total)}</div>` : ''}
                 </div>
             </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     renderRepartidores(empleados, onAdd) {
@@ -203,18 +212,25 @@ class UI {
 
     renderHistory(registros, onDelete) {
         this.elements.historyTableBody.innerHTML = registros.map(r => {
-            const unitPrice = r.cantidad > 0 ? r.total / r.cantidad : 0;
+            const isGasto = r.type === 'gasto';
+            const unitPrice = !isGasto && r.cantidad > 0 ? r.total / r.cantidad : 0;
+            const rowClass = isGasto ? 'style="background:rgba(239,68,68,0.05)"' : '';
+            const badgeClass = isGasto ? 'danger' : r.tipo;
+            const badgeText = isGasto ? 'GASTO' : r.tipo;
+            const totalColor = isGasto ? 'color:var(--danger)' : 'color:var(--success)';
+            const collection = isGasto ? 'gastos' : 'ventas';
+
             return `
-            <tr>
+            <tr ${rowClass}>
                 <td>${new Date(r.fecha).toLocaleDateString()}</td>
                 <td>${new Date(r.fecha).toLocaleTimeString()}</td>
-                <td><span class="badge ${r.tipo}">${r.tipo}</span></td>
+                <td><span class="badge ${badgeClass}">${badgeText}</span></td>
                 <td>${r.detalle}</td>
-                <td class="text-right">${r.cantidad}</td>
-                <td class="text-right">${this.formatCurrency(unitPrice)}</td>
-                <td class="text-right">${this.formatCurrency(r.total)}</td>
+                <td class="text-right">${isGasto ? '-' : r.cantidad}</td>
+                <td class="text-right">${isGasto ? '-' : this.formatCurrency(unitPrice)}</td>
+                <td class="text-right" style="${totalColor}">${this.formatCurrency(r.total)}</td>
                 <td>
-                    <button class="btn btn-sm btn-outline danger" onclick="window.app.deleteRegistro('${r.id}')" style="border-color:var(--danger);color:var(--danger)">
+                    <button class="btn btn-sm btn-outline danger" onclick="window.app.deleteRegistro('${r.id}', '${collection}')" style="border-color:var(--danger);color:var(--danger)">
                         <i class="bi bi-trash"></i> Borrar
                     </button>
                 </td>
@@ -377,12 +393,43 @@ class App {
             this.auth.logout();
         });
 
-        // Quick Actions
+        // Header Actions
         const safeAdd = (id, fn) => {
             const el = document.getElementById(id);
-            if (el) el.addEventListener('click', fn);
+            if (el) {
+                el.addEventListener('click', fn);
+                console.log(`Listener attached to ${id}`);
+            } else {
+                console.warn(`Element ${id} not found for listener`);
+            }
         };
 
+        safeAdd('exportCsvMobile', () => this.exportToCSV());
+        safeAdd('clearAllMobile', () => this.clearAllData());
+
+        // Data Menu
+        safeAdd('btnDataMenu', async () => {
+            const { isConfirmed, isDenied } = await Swal.fire({
+                title: 'Gestión de Datos',
+                text: 'Elige una opción para tus datos',
+                icon: 'question',
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonText: '<i class="bi bi-cloud-download-fill"></i> Descargar Copia',
+                denyButtonText: '<i class="bi bi-cloud-upload-fill"></i> Restaurar Datos',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: 'var(--primary)',
+                denyButtonColor: 'var(--warning)'
+            });
+
+            if (isConfirmed) {
+                this.exportData();
+            } else if (isDenied) {
+                document.getElementById('restoreFileHeader').click();
+            }
+        });
+
+        // Quick Actions
         safeAdd('btnLocal', () => this.addVenta('local'));
         safeAdd('btnCamion', () => this.addVenta('camion'));
         safeAdd('btnOtro', () => this.addVenta('otro'));
@@ -470,7 +517,14 @@ class App {
     }
 
     refreshUI(state) {
-        // Calculate Dashboard Stats
+        // Combine and sort all records for history and dashboard
+        const allRecords = [
+            ...state.registros.map(r => ({ ...r, type: 'venta' })),
+            ...state.gastos.map(g => ({ ...g, type: 'gasto', total: -g.monto, detalle: g.descripcion, cantidad: 0 }))
+        ].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+        // Calculate Dashboard Stats (Sales only for now, or Net?)
+        // Keeping "Venta Total" as Gross Sales based on label
         const today = new Date().toISOString().slice(0, 10);
         const todaySales = state.registros.filter(r => r.fecha.startsWith(today));
 
@@ -480,9 +534,9 @@ class App {
             transacciones: todaySales.length
         };
 
-        this.ui.updateDashboard(stats, todaySales.slice(0, 5));
+        this.ui.updateDashboard(stats, allRecords.slice(0, 5));
         this.ui.renderRepartidores(state.empleados);
-        this.ui.renderHistory(state.registros);
+        this.ui.renderHistory(allRecords);
 
         // Update chart if on reports view
         const reportView = document.getElementById('view-reportes');
@@ -559,13 +613,19 @@ class App {
     }
 
     async addGasto() {
+        console.log("Attempting to add gasto...");
         const montoInput = document.getElementById('gastoMonto');
         const descInput = document.getElementById('gastoDesc');
 
-        if (!montoInput || !descInput) return;
+        if (!montoInput || !descInput) {
+            console.error("Gasto inputs not found!", montoInput, descInput);
+            return;
+        }
 
         const monto = parseFloat(montoInput.value);
         const desc = descInput.value;
+
+        console.log("Values:", { monto, desc });
 
         if (!monto || !desc) return this.ui.showToast('Completa los campos', 'warning');
 
@@ -628,6 +688,127 @@ class App {
         const now = new Date();
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         this.ui.elements.dateDisplay.textContent = now.toLocaleDateString('es-ES', options);
+    }
+
+    exportToCSV() {
+        const rows = [
+            ['Fecha', 'Tipo', 'Detalle', 'Cantidad', 'Total', 'Usuario'],
+            ...this.store.state.registros.map(r => [
+                r.fecha, r.tipo, r.detalle, r.cantidad, r.total, r.usuario
+            ]),
+            ...this.store.state.gastos.map(g => [
+                g.fecha, 'Gasto', g.descripcion, 0, -g.monto, g.usuario
+            ])
+        ];
+
+        const csvContent = "data:text/csv;charset=utf-8,"
+            + rows.map(e => e.join(",")).join("\n");
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "reporte_ventas_awa.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    exportData() {
+        const data = {
+            ventas: this.store.state.registros,
+            gastos: this.store.state.gastos,
+            empleados: this.store.state.empleados,
+            timestamp: new Date().toISOString()
+        };
+
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "backup_awa_" + new Date().toISOString().slice(0, 10) + ".json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+
+    async restoreData(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+
+                // Confirm before restoring
+                const { isConfirmed } = await Swal.fire({
+                    title: '¿Restaurar Datos?',
+                    text: `Se importarán ${data.ventas?.length || 0} ventas, ${data.gastos?.length || 0} gastos y ${data.empleados?.length || 0} empleados. Esto se agregará a lo existente.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, restaurar'
+                });
+
+                if (isConfirmed) {
+                    // Batch add (one by one for now as Firestore batch has limits and we are client side)
+                    let count = 0;
+                    if (data.ventas) {
+                        for (const v of data.ventas) {
+                            delete v.id; // Let Firestore generate ID
+                            await this.store.addVenta(v);
+                            count++;
+                        }
+                    }
+                    if (data.gastos) {
+                        for (const g of data.gastos) {
+                            delete g.id;
+                            await this.store.addGasto(g);
+                            count++;
+                        }
+                    }
+                    if (data.empleados) {
+                        for (const emp of data.empleados) {
+                            delete emp.id;
+                            await this.store.addEmpleado(emp.nombre); // Simplified
+                            count++;
+                        }
+                    }
+
+                    this.ui.showToast(`Restauración completada (${count} registros)`);
+                }
+            } catch (err) {
+                console.error(err);
+                this.ui.showToast('Error al leer el archivo', 'error');
+            }
+            input.value = ''; // Reset input
+        };
+        reader.readAsText(file);
+    }
+
+    async clearAllData() {
+        const result = await Swal.fire({
+            title: '¿Borrar TODOS los datos?',
+            text: "Esta acción eliminará todas las ventas y gastos. No se puede deshacer. ¿Estás seguro?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: 'var(--danger)',
+            confirmButtonText: 'Sí, borrar todo'
+        });
+
+        if (result.isConfirmed) {
+            // Delete all sales
+            const sales = this.store.state.registros;
+            for (const s of sales) {
+                await this.store.deleteRegistro(s.id, 'ventas');
+            }
+
+            // Delete all expenses
+            const expenses = this.store.state.gastos;
+            for (const g of expenses) {
+                await this.store.deleteRegistro(g.id, 'gastos');
+            }
+
+            this.ui.showToast('Todos los datos han sido eliminados', 'info');
+        }
     }
 }
 

@@ -81,14 +81,18 @@
                     <h2 id="pageTitle">Dashboard</h2>
                     <div class="date-display" id="currentDate"></div>
                 </div>
-                <div class="header-actions" style="display:flex;gap:10px">
-                    <!-- Backup Controls -->
-                    <button class="btn-icon" onclick="window.app.exportData()" title="Descargar Copia de Seguridad">
-                        <i class="bi bi-cloud-download-fill"></i>
+                <div class="header-actions" style="display:flex;gap:8px">
+                    <!-- Original Actions -->
+                    <button class="btn-icon" id="exportCsvMobile" title="Exportar CSV">
+                        <i class="bi bi-download"></i>
                     </button>
-                    <button class="btn-icon warning" onclick="document.getElementById('restoreFileHeader').click()"
-                        title="Restaurar Datos">
-                        <i class="bi bi-cloud-upload-fill"></i>
+                    <button class="btn-icon danger" id="clearAllMobile" title="Borrar Todo">
+                        <i class="bi bi-trash3-fill"></i>
+                    </button>
+
+                    <!-- Data Menu -->
+                    <button class="btn-icon primary" id="btnDataMenu" title="Gestión de Datos">
+                        <i class="bi bi-database-fill-gear"></i>
                     </button>
                     <input type="file" id="restoreFileHeader" accept=".json" style="display:none"
                         onchange="window.app.restoreData(this)">
