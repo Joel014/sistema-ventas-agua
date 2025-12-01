@@ -542,38 +542,35 @@ class App {
             ...state.gastos.map(g => ({ ...g, type: 'gasto', total: -g.monto, detalle: g.descripcion, cantidad: 0 }))
         ].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
-        // Calculate Dashboard Stats (Sales only for now, or Net?)
-        // Keeping "Venta Total" as Gross Sales based on label
+        // Filter for TODAY only (Daily Reset)
         const today = new Date().toISOString().slice(0, 10);
-        const todaySales = state.registros.filter(r => r.fecha.startsWith(today));
+        const todaysRecords = allRecords.filter(r => r.fecha.startsWith(today));
 
+        // Update Dashboard with TODAY'S data
         const stats = {
-            total: todaySales.reduce((sum, r) => sum + r.total, 0),
-            botellones: todaySales.reduce((sum, r) => sum + r.cantidad, 0),
-            transacciones: todaySales.length
+            botellones: todaysRecords.filter(r => r.type === 'venta').reduce((acc, curr) => acc + (parseInt(curr.cantidad) || 0), 0),
+            transacciones: todaysRecords.length,
+            dinero: todaysRecords.reduce((acc, curr) => acc + (parseFloat(curr.total) || 0), 0)
         };
 
-        this.ui.updateDashboard(stats, allRecords.slice(0, 5));
+        this.ui.updateDashboard(stats, todaysRecords.slice(0, 5));
 
-        // Calculate totals for repartidores
-        console.log("Calculating totals...");
-        console.log("Empleados:", state.empleados);
-        console.log("Registros Sample:", state.registros.slice(0, 3));
-
+        // Calculate totals for repartidores (TODAY only)
+        console.log("Calculating daily totals...");
         const repartidoresWithTotal = state.empleados.map(emp => {
-            const empSales = state.registros.filter(r => r.repartidorId === emp.id);
+            const empSales = todaysRecords.filter(r => r.repartidorId === emp.id);
             const total = empSales.reduce((sum, r) => sum + (parseInt(r.cantidad) || 0), 0);
-
-            console.log(`Emp: ${emp.nombre} (${emp.id}) - Sales Found: ${empSales.length} - Total: ${total}`);
-
             return { ...emp, totalEntregado: total };
         });
 
         this.ui.renderRepartidores(repartidoresWithTotal);
+
+        // Render History (Show ALL records for reference, or change to todaysRecords if preferred)
+        // User asked for "reset", but "registered by day". Keeping history full is safer for "registered".
         this.ui.renderHistory(allRecords);
 
-        // Calculate Total Camion
-        const totalCamion = allRecords
+        // Calculate Total Camion (TODAY only)
+        const totalCamion = todaysRecords
             .filter(r => r.type === 'venta' && r.tipo === 'camion')
             .reduce((sum, r) => sum + (parseInt(r.cantidad) || 0), 0);
 
@@ -607,14 +604,28 @@ class App {
             const qty = parseInt(document.getElementById('qtyCamion').value) || 1;
             const price = parseInt(document.getElementById('priceCamion').textContent);
             const comment = document.getElementById('commentCamion').value;
+
+            const isSolo = document.getElementById('modeSolo').checked;
+            const isAyudante = document.getElementById('modeAyudante').checked;
+
+            if (!isSolo && !isAyudante) {
+                return this.ui.showToast('Selecciona: Solo o Ayudante', 'warning');
+            }
+
+            const detailBase = isAyudante ? 'Venta Camión (Con Ayudante)' : 'Venta Camión (Solo)';
+
             venta = {
                 ...venta,
                 cantidad: qty,
                 total: qty * price,
-                detalle: `Venta Camión ${comment ? '(' + comment + ')' : ''}`
+                detalle: `${detailBase} ${comment ? '- ' + comment : ''}`
             };
             document.getElementById('qtyCamion').value = '';
             document.getElementById('commentCamion').value = '';
+
+            // Reset selection to force choice next time
+            document.getElementById('modeSolo').checked = false;
+            document.getElementById('modeAyudante').checked = false;
         } else if (type === 'otro') {
             const desc = document.getElementById('descOtro').value;
             const price = parseFloat(document.getElementById('priceOtro').value) || 0;
