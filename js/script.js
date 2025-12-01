@@ -572,9 +572,18 @@ class App {
         this.ui.renderRepartidores(repartidoresWithTotal);
         this.ui.renderHistory(allRecords);
 
+        // Calculate Total Camion
+        const totalCamion = allRecords
+            .filter(r => r.type === 'venta' && r.tipo === 'camion')
+            .reduce((sum, r) => sum + (parseInt(r.cantidad) || 0), 0);
+
+        const totalCamionInput = document.getElementById('totalCamion');
+        if (totalCamionInput) {
+            totalCamionInput.value = totalCamion;
+        }
+
         // Update chart if on reports view
-        const reportView = document.getElementById('view-reportes');
-        if (reportView && reportView.classList.contains('active')) {
+        if (document.querySelector('.nav-btn[data-tab="reportes"]').classList.contains('active')) {
             this.ui.renderChart();
         }
     }
