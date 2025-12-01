@@ -177,7 +177,7 @@ class UI {
     updateDashboard(stats, recent) {
         if (!this.elements.dashTotal) return;
 
-        this.elements.dashTotal.textContent = this.formatCurrency(stats.total);
+        this.elements.dashTotal.textContent = this.formatCurrency(stats.dinero);
         this.elements.dashBotellones.textContent = stats.botellones;
         this.elements.dashTransacciones.textContent = stats.transacciones;
 
@@ -272,7 +272,9 @@ class UI {
     }
 
     formatCurrency(amount) {
-        return new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(amount);
+        const val = parseFloat(amount);
+        if (isNaN(val)) return 'RD$ 0.00';
+        return 'RD$ ' + val.toFixed(2);
     }
 
     toggleLogin(show) {
@@ -308,52 +310,112 @@ class UI {
         });
     }
 
-    renderChart(start = null, end = null) {
-        const canvas = document.getElementById('mainChart');
-        if (!canvas) return;
-
-        // Get data from store via global app instance (a bit hacky but works for this structure)
+    renderReports(start = null, end = null) {
+        // 1. Get Data
         const data = window.app.store.getReportData(start, end);
-        const ctx = canvas.getContext('2d');
+        const sales = data.filter(r => r.type === 'venta');
+        const expenses = data.filter(r => r.type === 'gasto');
 
-        if (this.chart) this.chart.destroy();
+        // 2. Financial Summary
+        const totalSales = sales.reduce((sum, r) => sum + (r.total || 0), 0);
+        const totalExpenses = expenses.reduce((sum, r) => sum + (r.monto || 0), 0);
+        const netProfit = totalSales - totalExpenses;
+        const margin = totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : 0;
 
-        this.chart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: data.labels,
-                datasets: [{
-                    label: 'Ventas (RD$)',
-                    data: data.values,
-                    backgroundColor: 'rgba(0, 194, 255, 0.5)',
-                    borderColor: '#00C2FF',
-                    borderWidth: 1,
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { labels: { color: '#94a3b8' } }
+        document.getElementById('reportNetProfit').textContent = this.formatCurrency(netProfit);
+        document.getElementById('reportNetProfit').style.color = netProfit >= 0 ? '#10b981' : '#ef4444';
+        document.getElementById('reportMargin').textContent = `${margin}%`;
+
+        // 3. Sales Breakdown (Pie Chart)
+        const ctxPie = document.getElementById('salesPieChart');
+        if (ctxPie) {
+            const byType = { 'local': 0, 'camion': 0, 'delivery': 0 };
+            sales.forEach(r => {
+                if (byType[r.tipo] !== undefined) byType[r.tipo] += (r.total || 0);
+            });
+
+            if (this.pieChart) this.pieChart.destroy();
+            this.pieChart = new Chart(ctxPie, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Local', 'Camión', 'Delivery'],
+                    datasets: [{
+                        data: [byType.local, byType.camion, byType.delivery],
+                        backgroundColor: ['#00c2ff', '#7c3aed', '#10b981'],
+                        borderWidth: 0
+                    }]
                 },
-                scales: {
-                    y: {
-                        grid: { color: 'rgba(148, 163, 184, 0.1)' },
-                        ticks: { color: '#94a3b8' }
-                    },
-                    x: {
-                        grid: { display: false },
-                        ticks: { color: '#94a3b8' }
-                    }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'right', labels: { color: '#94a3b8' } } }
                 }
-            }
-        });
+            });
+        }
 
-        // Update summary stats
-        if (this.elements.reportTotal) this.elements.reportTotal.textContent = data.total.toFixed(2);
-        if (this.elements.reportVentas) this.elements.reportVentas.textContent = data.ventasCount;
-        if (this.elements.reportGastos) this.elements.reportGastos.textContent = data.gastosCount;
+        // 4. Weekly Trend (Line Chart) - Simplified to Daily for selected range
+        const ctxTrend = document.getElementById('trendChart');
+        if (ctxTrend) {
+            const byDate = {};
+            sales.forEach(r => {
+                const date = r.fecha.split('T')[0];
+                byDate[date] = (byDate[date] || 0) + (r.total || 0);
+            });
+
+            const sortedDates = Object.keys(byDate).sort();
+
+            if (this.trendChart) this.trendChart.destroy();
+            this.trendChart = new Chart(ctxTrend, {
+                type: 'line',
+                data: {
+                    labels: sortedDates,
+                    datasets: [{
+                        label: 'Ventas',
+                        data: sortedDates.map(d => byDate[d]),
+                        borderColor: '#00c2ff',
+                        tension: 0.4,
+                        fill: true,
+                        backgroundColor: 'rgba(0, 194, 255, 0.1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8' } },
+                        x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // 5. Employee Ranking
+        const rankingTable = document.getElementById('employeeRankingTable');
+        if (rankingTable) {
+            const empStats = {};
+            sales.forEach(r => {
+                if (r.repartidorId) { // Only count deliveries assigned to someone
+                    if (!empStats[r.repartidorId]) empStats[r.repartidorId] = { name: r.repartidorNombre || 'Unknown', qty: 0, total: 0 };
+                    empStats[r.repartidorId].qty += (parseInt(r.cantidad) || 0);
+                    empStats[r.repartidorId].total += (r.total || 0);
+                }
+            });
+
+            // Also include Camion sales if we want to track "Camion" as a pseudo-employee, or track helper?
+            // For now, let's stick to registered Repartidores (Delivery)
+
+            const sortedEmps = Object.values(empStats).sort((a, b) => b.qty - a.qty);
+
+            rankingTable.innerHTML = sortedEmps.map((emp, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${emp.name}</td>
+                    <td>${emp.qty}</td>
+                    <td>${this.formatCurrency(emp.total)}</td>
+                </tr>
+            `).join('') || '<tr><td colspan="4" class="text-center">No hay datos</td></tr>';
+        }
     }
 }
 
@@ -463,14 +525,14 @@ class App {
         document.getElementById('btnFilterReport').addEventListener('click', () => {
             const start = document.getElementById('reportStart').value;
             const end = document.getElementById('reportEnd').value;
-            this.ui.renderChart(start, end);
+            this.ui.renderReports(start, end);
         });
 
         document.getElementById('btnResetReport').addEventListener('click', () => {
             const today = new Date().toISOString().slice(0, 10);
             document.getElementById('reportStart').value = today;
             document.getElementById('reportEnd').value = today;
-            this.ui.renderChart(today, today);
+            this.ui.renderReports(today, today);
         });
 
         // Initialize reports with today's date
@@ -538,8 +600,8 @@ class App {
     refreshUI(state) {
         // Combine and sort records
         const allRecords = [
-            ...state.registros.map(r => ({ ...r, type: 'venta' })),
-            ...state.gastos.map(g => ({ ...g, type: 'gasto', total: -g.monto, detalle: g.descripcion, cantidad: 0 }))
+            ...state.registros.map(r => ({ ...r, type: 'venta', total: parseFloat(r.total) || 0 })),
+            ...state.gastos.map(g => ({ ...g, type: 'gasto', total: -(parseFloat(g.monto) || 0), detalle: g.descripcion, cantidad: 0 }))
         ].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
         // Filter for TODAY only (Daily Reset)
@@ -581,7 +643,7 @@ class App {
 
         // Update chart if on reports view
         if (document.querySelector('.nav-btn[data-tab="reportes"]').classList.contains('active')) {
-            this.ui.renderChart();
+            this.ui.renderReports();
         }
     }
 
