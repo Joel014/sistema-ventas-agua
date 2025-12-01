@@ -1,6 +1,6 @@
 import { db } from './firebase-config.js';
 import { AuthManager } from './auth.js';
-import { collection, addDoc, query, where, getDocs, orderBy, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+import { collection, addDoc, query, where, getDocs, orderBy, deleteDoc, doc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // --- STATE MANAGEMENT (Firestore) ---
 class Store {
@@ -69,10 +69,21 @@ class Store {
 
     async addEmpleado(nombre) {
         try {
-            await addDoc(collection(db, "empleados"), { nombre, activo: true });
+            await addDoc(collection(db, "empleados"), { nombre, activo: true, carga: 0 });
             return true;
         } catch (e) {
             console.error("Error adding empleado: ", e);
+            return false;
+        }
+    }
+
+    async updateEmpleado(id, data) {
+        try {
+            const docRef = doc(db, "empleados", id);
+            await updateDoc(docRef, data);
+            return true;
+        } catch (e) {
+            console.error("Error updating empleado: ", e);
             return false;
         }
     }
@@ -196,9 +207,17 @@ class UI {
             <div class="emp-card">
                 <div class="emp-header">
                     <span>${emp.nombre}</span>
-                    <button class="btn-icon danger small" onclick="window.app.deleteRepartidor('${emp.id}')" style="padding:0;width:24px;height:24px;min-width:auto;">
-                        <i class="bi bi-x-lg"></i>
-                    </button>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <input type="text" 
+                               value="${emp.totalEntregado || 0}" 
+                               readonly
+                               class="form-control" 
+                               style="width: 60px; padding: 2px 6px; font-size: 12px; height: 24px; text-align: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--primary); font-weight: bold;"
+                               title="Total Entregado">
+                        <button class="btn-icon danger small" onclick="window.app.deleteRepartidor('${emp.id}')" style="padding:0;width:24px;height:24px;min-width:auto;">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="emp-actions">
                     <input type="number" id="qty-${emp.id}" placeholder="Cant." class="form-control" style="width: 70px; padding: 4px 8px; font-size: 13px;">
@@ -517,7 +536,7 @@ class App {
     }
 
     refreshUI(state) {
-        // Combine and sort all records for history and dashboard
+        // Combine and sort records
         const allRecords = [
             ...state.registros.map(r => ({ ...r, type: 'venta' })),
             ...state.gastos.map(g => ({ ...g, type: 'gasto', total: -g.monto, detalle: g.descripcion, cantidad: 0 }))
@@ -535,7 +554,22 @@ class App {
         };
 
         this.ui.updateDashboard(stats, allRecords.slice(0, 5));
-        this.ui.renderRepartidores(state.empleados);
+
+        // Calculate totals for repartidores
+        console.log("Calculating totals...");
+        console.log("Empleados:", state.empleados);
+        console.log("Registros Sample:", state.registros.slice(0, 3));
+
+        const repartidoresWithTotal = state.empleados.map(emp => {
+            const empSales = state.registros.filter(r => r.repartidorId === emp.id);
+            const total = empSales.reduce((sum, r) => sum + (parseInt(r.cantidad) || 0), 0);
+
+            console.log(`Emp: ${emp.nombre} (${emp.id}) - Sales Found: ${empSales.length} - Total: ${total}`);
+
+            return { ...emp, totalEntregado: total };
+        });
+
+        this.ui.renderRepartidores(repartidoresWithTotal);
         this.ui.renderHistory(allRecords);
 
         // Update chart if on reports view
@@ -667,6 +701,13 @@ class App {
                 this.ui.showToast('Repartidor eliminado');
             }
         }
+    }
+
+    async updateRepartidorCarga(id, value) {
+        const carga = parseInt(value) || 0;
+        await this.store.updateEmpleado(id, { carga });
+        // Toast is optional here to avoid spam, but good for feedback
+        // this.ui.showToast('Carga actualizada'); 
     }
 
     async deleteRegistro(id) {
