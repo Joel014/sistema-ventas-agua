@@ -124,6 +124,7 @@ class Store {
             }).map(g => ({ ...g, type: 'gasto', monto: parseFloat(g.monto) || 0 }))
         ];
     }
+}
 
 
 // --- UI HANDLER ---
