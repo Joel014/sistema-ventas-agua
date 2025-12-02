@@ -58,10 +58,17 @@
     <div class="app-container" id="app-content" style="display:none">
         <!-- Sidebar / Navigation -->
         <nav class="sidebar">
-            <div class="brand">
-                <img src="img/logo.png" alt="AWA Logo" style="max-width: 100%; height: auto; max-height: 150px;">
+            <div class="top-bar">
+                <div class="logo-container">
+                    <img src="img/logo.png" alt="Logo" class="logo">
+                    <span class="app-title">AWA</span>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-icon" id="btnMobileLogout" title="Cerrar Sesión">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </button>
+                </div>
             </div>
-
             <div class="nav-links">
                 <button class="nav-btn active" data-tab="dashboard">
                     <i class="bi bi-grid-fill"></i> Dashboard

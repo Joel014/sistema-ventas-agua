@@ -478,6 +478,30 @@ class App {
         const safeAdd = (id, fn) => {
             const el = document.getElementById(id);
             if (el) {
+                // Mobile Logout
+                const btnMobileLogout = document.getElementById('btnMobileLogout');
+                if (btnMobileLogout) {
+                    btnMobileLogout.addEventListener('click', () => {
+                        Swal.fire({
+                            title: '¿Cerrar sesión?',
+                            text: "Tendrás que ingresar tus credenciales nuevamente.",
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#ef4444',
+                            cancelButtonColor: '#334155',
+                            confirmButtonText: 'Sí, salir',
+                            cancelButtonText: 'Cancelar',
+                            background: '#1e293b',
+                            color: '#fff'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                this.auth.logout(); // Changed window.auth.logout() to this.auth.logout()
+                            }
+                        });
+                    });
+                }
+
+                // Add Venta Listeners
                 el.addEventListener('click', fn);
                 console.log(`Listener attached to ${id}`);
             } else {
