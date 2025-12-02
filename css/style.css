@@ -699,16 +699,20 @@ label {
     .main-content::before {
         content: "";
         position: fixed;
-        top: 50%;
+        top: 55%;
+        /* Lower it slightly */
         left: 50%;
         transform: translate(-50%, -50%);
-        width: 80%;
-        height: 80%;
+        width: 60%;
+        /* Smaller width */
+        height: 40%;
+        /* Smaller height */
         background-image: url('../img/logo.png');
         background-repeat: no-repeat;
         background-position: center;
         background-size: contain;
-        opacity: 0.15;
+        opacity: 0.1;
+        /* More subtle */
         z-index: -1;
         pointer-events: none;
     }
