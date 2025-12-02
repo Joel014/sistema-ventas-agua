@@ -99,32 +99,46 @@ class Store {
     }
 
     getReportData(start, end) {
+        // Ensure we have records
+        if (!this.state.registros || this.state.registros.length === 0) return [];
+
         const filtered = this.state.registros.filter(r => {
-            if (!start && !end) return true;
-            if (start && r.fecha < start) return false;
-            // Add 1 day to end date to include it fully
-            if (end) {
-                const endDate = new Date(end);
-                endDate.setDate(endDate.getDate() + 1);
-                if (new Date(r.fecha) >= endDate) return false;
-            }
+            if (!r.fecha) return false;
+            const rDate = r.fecha.split('T')[0]; // Extract YYYY-MM-DD
+
+            if (start && rDate < start) return false;
+            if (end && rDate > end) return false;
+
             return true;
         });
 
-        const byDate = {};
+        // Map to standard format for reports
+        return [
+            ...filtered.map(r => ({ ...r, type: 'venta', total: parseFloat(r.total) || 0 })),
+            ...this.state.gastos.filter(g => {
+                if (!g.fecha) return false;
+                const gDate = g.fecha.split('T')[0];
+                if (start && gDate < start) return false;
+                if (end && gDate > end) return false;
+                return true;
+            }).map(g => ({ ...g, type: 'gasto', monto: parseFloat(g.monto) || 0 }))
+        ];
+    }
+
+    const byDate = {};
         filtered.forEach(r => {
-            const dateKey = r.fecha.slice(0, 10);
-            if (!byDate[dateKey]) byDate[dateKey] = 0;
-            byDate[dateKey] += r.total;
+        const dateKey = r.fecha.slice(0, 10);
+        if (!byDate[dateKey]) byDate[dateKey] = 0;
+byDate[dateKey] += r.total;
         });
 
-        return {
-            labels: Object.keys(byDate).sort(),
-            values: Object.keys(byDate).sort().map(d => byDate[d]),
-            total: filtered.reduce((s, r) => s + r.total, 0),
-            ventasCount: filtered.filter(r => r.total > 0).length,
-            gastosCount: filtered.filter(r => r.total < 0).length
-        };
+return {
+    labels: Object.keys(byDate).sort(),
+    values: Object.keys(byDate).sort().map(d => byDate[d]),
+    total: filtered.reduce((s, r) => s + r.total, 0),
+    ventasCount: filtered.filter(r => r.total > 0).length,
+    gastosCount: filtered.filter(r => r.total < 0).length
+};
     }
 }
 
