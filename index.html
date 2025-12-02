@@ -166,7 +166,7 @@
                         <h3><i class="bi bi-shop"></i> Venta Local</h3>
                         <div class="quick-actions">
                             <div class="action-group">
-                                <label>Botellón (<span id="priceLocal">25</span> RD$)</label>
+                                <label for="qtyLocal">Botellón (<span id="priceLocal">25</span> RD$)</label>
                                 <div class="input-group">
                                     <input type="number" id="qtyLocal" placeholder="Cant." min="1">
                                     <button class="btn btn-primary" id="btnLocal">
@@ -179,7 +179,7 @@
                         <div class="divider"></div>
 
                         <div class="custom-sale">
-                            <label>Otro Servicio</label>
+                            <label for="descOtro">Otro Servicio</label>
                             <div class="input-row">
                                 <input type="text" id="descOtro" placeholder="Descripción" class="flex-2">
                                 <input type="number" id="priceOtro" placeholder="Precio" class="flex-1">
@@ -219,7 +219,7 @@
                         </h3>
                         <div class="quick-actions">
                             <div class="action-group">
-                                <label>Botellón (<span id="priceCamion">30</span> RD$)</label>
+                                <label for="qtyCamion">Botellón (<span id="priceCamion">30</span> RD$)</label>
                                 <div class="input-group">
                                     <input type="number" id="qtyCamion" placeholder="Cant." min="1">
                                     <button class="btn btn-primary" id="btnCamion">
@@ -256,11 +256,11 @@
                     <h3><i class="bi bi-cash-coin"></i> Registrar Gasto</h3>
                     <div class="form-stack">
                         <div class="form-group">
-                            <label>Monto (RD$)</label>
+                            <label for="gastoMonto">Monto (RD$)</label>
                             <input type="number" id="gastoMonto" placeholder="0.00" step="0.01">
                         </div>
                         <div class="form-group">
-                            <label>Descripción</label>
+                            <label for="gastoDesc">Descripción</label>
                             <textarea id="gastoDesc" rows="3" placeholder="Ej: Gasolina, Comida..."></textarea>
                         </div>
                         <button class="btn btn-warning full-width" id="btnGasto">
@@ -274,11 +274,11 @@
             <div id="view-reportes" class="view">
                 <div class="filters-bar section-card">
                     <div class="filter-group">
-                        <label>Desde</label>
+                        <label for="reportStart">Desde</label>
                         <input type="date" id="reportStart">
                     </div>
                     <div class="filter-group">
-                        <label>Hasta</label>
+                        <label for="reportEnd">Hasta</label>
                         <input type="date" id="reportEnd">
                     </div>
                     <div class="filter-actions">
