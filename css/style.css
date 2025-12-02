@@ -113,24 +113,61 @@ body {
         /* Subtle frame */
     }
 
-    height: 100dvh;
-    background: var(--bg-dark);
-    box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
-    position: relative;
-}
+    /* The following properties were misplaced and are now removed or correctly placed */
+    /* height: 100dvh; */
+    /* background: var(--bg-dark); */
+    /* box-shadow: 0 0 50px rgba(0, 0, 0, 0.5); */
+    /* position: relative; */
 
-.sidebar {
-    display: none;
-    /* Hide sidebar on desktop if we are simulating mobile app */
-}
+    .sidebar {
+        display: flex;
+        /* Show sidebar (bottom nav) on desktop */
+        position: absolute;
+        /* Keep inside container */
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        border-radius: 0 0 24px 24px;
+        /* Match container radius */
+        background: rgba(1, 22, 39, 0.95);
+        /* Matches bg-dark */
+        border-right: none;
+        border-top: 1px solid var(--border);
+        padding: 16px 24px;
+        flex-direction: row;
+        height: auto;
+        justify-content: space-around;
+        align-items: center;
+        overflow-y: hidden;
+        z-index: 100;
+    }
 
-/* Ensure fixed elements stay within the container width */
-.top-bar,
-.bottom-nav {
-    max-width: 480px;
-    left: 50%;
-    transform: translateX(-50%);
-}
+    .top-bar {
+        position: absolute;
+        /* Keep inside container */
+        top: 0;
+        left: 0;
+        width: 100%;
+        border-radius: 24px 24px 0 0;
+        /* Match container radius */
+        max-width: none;
+        /* Reset max-width if set elsewhere */
+        transform: none;
+        /* Reset transform */
+        background: rgba(1, 22, 39, 0.95);
+        /* Matches bg-dark */
+        padding: 24px;
+        border-bottom: 1px solid var(--border);
+        z-index: 100;
+    }
+
+    /* Ensure fixed elements stay within the container width */
+    /* .top-bar,
+    .bottom-nav {
+        max-width: 480px;
+        left: 50%;
+        transform: translateX(-50%);
+    } */
 }
 
 /* Sidebar Elements */
@@ -686,18 +723,20 @@ label {
         justify-content: space-between;
         align-items: center;
         padding: 15px 20px;
-        background: rgba(15, 23, 42, 0.8);
+        background: rgba(15, 23, 42, 0.95);
         backdrop-filter: blur(10px);
-        z-index: 100;
+        z-index: 1000;
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        margin-bottom: 0;
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        height: 70px;
+        /* Fixed height */
     }
 
     .header-actions {
         display: flex;
         gap: 10px;
     }
+
 
     #btnMobileLogout {
         background: rgba(255, 255, 255, 0.1);
