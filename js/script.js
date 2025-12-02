@@ -662,6 +662,17 @@ class App {
             ...gastos.map(g => ({ ...g, type: 'gasto', total: -(parseFloat(g.monto) || 0), detalle: g.descripcion, cantidad: 0 }))
         ].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
+        // Filter for History (Default: All)
+        const historyFilter = document.getElementById('filterHistoryDate').value;
+        let historyRecords = allRecords;
+
+        if (historyFilter !== 'all') {
+            // If we had specific date logic, it would go here. 
+            // For now 'all' is the only option in the dropdown, but we ensure it shows everything.
+        }
+
+        this.ui.renderHistory(historyRecords);
+
         // Filter for TODAY only (Daily Reset)
         const today = new Date().toISOString().slice(0, 10);
         // Use string comparison for date filtering to be safe
