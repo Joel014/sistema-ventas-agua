@@ -74,12 +74,48 @@ body {
     height: 100%;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 32px;
-    max-width: 1400px;
+    padding: 80px 20px 100px 20px;
+    /* Adjusted padding for fixed header/nav */
+    max-width: 480px;
+    /* Mobile width simulation */
+    margin: 0 auto;
+    /* Center on desktop */
     position: relative;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-y: contain;
+    width: 100%;
+}
+
+/* Desktop Background Wrapper */
+@media (min-width: 768px) {
+    body {
+        background-color: #0f172a;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .app-container {
+        max-width: 480px;
+        height: 100dvh;
+        background: var(--bg-dark);
+        box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+        position: relative;
+    }
+
+    .sidebar {
+        display: none;
+        /* Hide sidebar on desktop if we are simulating mobile app */
+    }
+
+    /* Ensure fixed elements stay within the container width */
+    .top-bar,
+    .bottom-nav {
+        max-width: 480px;
+        left: 50%;
+        transform: translateX(-50%);
+    }
 }
 
 /* Sidebar Elements */

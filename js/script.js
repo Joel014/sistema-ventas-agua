@@ -125,22 +125,6 @@ class Store {
         ];
     }
 
-    const byDate = {};
-        filtered.forEach(r => {
-        const dateKey = r.fecha.slice(0, 10);
-        if (!byDate[dateKey]) byDate[dateKey] = 0;
-byDate[dateKey] += r.total;
-        });
-
-return {
-    labels: Object.keys(byDate).sort(),
-    values: Object.keys(byDate).sort().map(d => byDate[d]),
-    total: filtered.reduce((s, r) => s + r.total, 0),
-    ventasCount: filtered.filter(r => r.total > 0).length,
-    gastosCount: filtered.filter(r => r.total < 0).length
-};
-    }
-}
 
 // --- UI HANDLER ---
 class UI {
@@ -476,11 +460,41 @@ class App {
         // Login Form
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            console.log("Login submitted");
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Cargando...';
+
             const email = document.getElementById('loginEmail').value;
             const pass = document.getElementById('loginPass').value;
-            const res = await this.auth.login(email, pass);
-            if (!res.success) {
-                this.ui.showToast('Error: ' + res.message, 'error');
+
+            try {
+                const res = await this.auth.login(email, pass);
+                console.log("Login result:", res);
+
+                if (!res.success) {
+                    let msg = 'Error al iniciar sesión';
+                    if (res.message.includes('invalid-credential') || res.message.includes('wrong-password')) {
+                        msg = 'Correo o contraseña incorrectos';
+                    } else if (res.message.includes('user-not-found')) {
+                        msg = 'Usuario no encontrado';
+                    } else if (res.message.includes('too-many-requests')) {
+                        msg = 'Demasiados intentos. Espera unos minutos';
+                    } else if (res.message.includes('network-request-failed')) {
+                        msg = 'Error de conexión. Verifica tu internet';
+                    }
+                    this.ui.showToast(msg, 'error');
+                    btn.disabled = false;
+                    btn.textContent = originalText;
+                }
+                // If success, onAuthStateChanged in auth.js will trigger app.onLogin
+                // We leave the button disabled to prevent double submit while redirecting
+            } catch (err) {
+                console.error("Login error:", err);
+                this.ui.showToast('Error inesperado: ' + err.message, 'error');
+                btn.disabled = false;
+                btn.textContent = originalText;
             }
         });
 
@@ -636,15 +650,21 @@ class App {
     }
 
     refreshUI(state) {
+        // Ensure arrays exist
+        const registros = state.registros || [];
+        const gastos = state.gastos || [];
+        const empleados = state.empleados || [];
+
         // Combine and sort records
         const allRecords = [
-            ...state.registros.map(r => ({ ...r, type: 'venta', total: parseFloat(r.total) || 0 })),
-            ...state.gastos.map(g => ({ ...g, type: 'gasto', total: -(parseFloat(g.monto) || 0), detalle: g.descripcion, cantidad: 0 }))
+            ...registros.map(r => ({ ...r, type: 'venta', total: parseFloat(r.total) || 0 })),
+            ...gastos.map(g => ({ ...g, type: 'gasto', total: -(parseFloat(g.monto) || 0), detalle: g.descripcion, cantidad: 0 }))
         ].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
         // Filter for TODAY only (Daily Reset)
         const today = new Date().toISOString().slice(0, 10);
-        const todaysRecords = allRecords.filter(r => r.fecha.startsWith(today));
+        // Use string comparison for date filtering to be safe
+        const todaysRecords = allRecords.filter(r => r.fecha && r.fecha.startsWith(today));
 
         // Update Dashboard with TODAY'S data
         const stats = {
