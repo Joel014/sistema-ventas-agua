@@ -1,8 +1,8 @@
-const CACHE_NAME = 'awa-v10';
+const CACHE_NAME = 'awa-v12';
 const ASSETS = [
     './',
     './index.html',
-    './css/style.css',
+    './css/main.css',
     './js/script.js',
     './js/auth.js',
     './js/firebase-config.js',

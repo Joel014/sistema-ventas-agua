@@ -19,11 +19,12 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/style.css?v=10">
+    <link rel="stylesheet" href="css/main.css?v=12">
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#00C2FF">
+    <!-- Logo removed from touch icon as well if desired, but keeping for now as it's metadata -->
     <link rel="apple-touch-icon" href="img/logo.png">
 
     <!-- Service Worker Registration -->
@@ -33,7 +34,6 @@
                 navigator.serviceWorker.register('./sw.js')
                     .then(reg => {
                         console.log('Service Worker registered');
-                        // Force update check
                         reg.update();
                     })
                     .catch(err => console.log('Service Worker registration failed: ', err));
@@ -43,7 +43,369 @@
 </head>
 
 <body>
-    <!-- ... body content ... -->
+
+    <!-- LOGIN VIEW -->
+    <div id="view-login"
+        style="display:flex;height:100dvh;align-items:center;justify-content:center;background:var(--bg-dark)">
+        <div class="section-card" style="width:100%;max-width:400px;margin:20px;text-align:center">
+            <div style="margin-bottom:30px">
+                <!-- Logo removed -->
+                <h1 style="font-size:32px;font-weight:700;color:var(--primary)">AWA System</h1>
+                <p style="color:var(--text-muted)">Inicia sesión para continuar</p>
+            </div>
+            <form id="loginForm" style="display:flex;flex-direction:column;gap:16px">
+                <input type="email" id="loginEmail" placeholder="Correo electrónico" required>
+                <input type="password" id="loginPass" placeholder="Contraseña" required>
+                <button type="submit" class="btn btn-primary full-width">Entrar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- APP CONTENT -->
+    <div class="app-container" id="app-content" style="display:none">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="brand desktop-only">
+                <!-- Logo Image Removed -->
+                <div class="app-title">
+                    <span style="color:var(--primary)">AWA</span> System
+                </div>
+            </div>
+
+            <nav class="nav-links">
+                <button class="nav-btn active" data-tab="dashboard">
+                    <i class="bi bi-grid-fill"></i>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-btn" data-tab="planta">
+                    <i class="bi bi-shop"></i>
+                    <span>Planta</span>
+                </button>
+                <button class="nav-btn" data-tab="camion">
+                    <i class="bi bi-truck"></i>
+                    <span>Camión</span>
+                </button>
+                <button class="nav-btn" data-tab="gastos">
+                    <i class="bi bi-wallet2"></i>
+                    <span>Gastos</span>
+                </button>
+                <button class="nav-btn" data-tab="reportes">
+                    <i class="bi bi-graph-up-arrow"></i>
+                    <span>Reportes</span>
+                </button>
+                <button class="nav-btn" data-tab="historial">
+                    <i class="bi bi-clock-history"></i>
+                    <span>Historial</span>
+                </button>
+            </nav>
+
+            <div class="nav-footer">
+                <button class="btn-icon" id="btnDataMenu" title="Datos">
+                    <i class="bi bi-database"></i>
+                </button>
+                <button class="btn-icon danger" id="btnLogout" title="Cerrar Sesión">
+                    <i class="bi bi-box-arrow-right"></i>
+                </button>
+                <!-- Hidden file input for restore -->
+                <input type="file" id="restoreFileHeader" accept=".json" style="display:none"
+                    onchange="window.app.importData(this)">
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+
+            <!-- TOP BAR -->
+            <header class="top-bar">
+                <div>
+                    <h2 id="pageTitle">Dashboard</h2>
+                    <div class="date-display" id="currentDate">Cargando fecha...</div>
+                </div>
+                <div class="mobile-actions">
+                    <button id="btnMobileLogout">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- VIEW: DASHBOARD -->
+            <div id="view-dashboard" class="view active">
+                <div class="stats-grid">
+                    <div class="stat-card primary">
+                        <div class="icon-box"><i class="bi bi-cash-stack"></i></div>
+                        <div class="stat-info">
+                            <span class="label">Venta Total</span>
+                            <span class="value" id="dashTotal">RD$ 0.00</span>
+                        </div>
+                    </div>
+                    <div class="stat-card success">
+                        <div class="icon-box"><i class="bi bi-droplet-fill"></i></div>
+                        <div class="stat-info">
+                            <span class="label">Botellones</span>
+                            <span class="value" id="dashBotellones">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card warning">
+                        <div class="icon-box"><i class="bi bi-receipt"></i></div>
+                        <div class="stat-info">
+                            <span class="label">Transacciones</span>
+                            <span class="value" id="dashTransacciones">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <h3><i class="bi bi-activity"></i> Actividad Reciente</h3>
+                    <div id="recentActivityList">
+                        <!-- JS populated -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: PLANTA -->
+            <div id="view-planta" class="view">
+                <div class="sales-grid">
+                    <!-- Venta Local -->
+                    <div class="section-card">
+                        <h3><i class="bi bi-shop"></i> Venta Local</h3>
+                        <div class="quick-actions">
+                            <div class="action-group">
+                                <label for="qtyLocal">Botellón (<span id="priceLocal">25</span> RD$)</label>
+                                <div class="input-group">
+                                    <input type="number" id="qtyLocal" class="form-control" placeholder="Cant."
+                                        value="1">
+                                    <button class="btn btn-primary" id="btnLocal">
+                                        <i class="bi bi-check-lg"></i> Vender
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Delivery -->
+                    <div class="section-card">
+                        <div class="card-header">
+                            <h3><i class="bi bi-bicycle"></i> Delivery</h3>
+                            <button class="btn btn-sm btn-outline" id="btnAddRepartidor">
+                                <i class="bi bi-person-plus"></i> Nuevo
+                            </button>
+                        </div>
+                        <div id="repartidoresList" class="repartidores-list">
+                            <!-- JS populated -->
+                        </div>
+                    </div>
+
+                    <!-- Otro Servicio -->
+                    <div class="section-card">
+                        <h3><i class="bi bi-stars"></i> Otro Servicio</h3>
+                        <div class="quick-actions">
+                            <div class="input-row">
+                                <div class="flex-2">
+                                    <label for="descOtro">Descripción</label>
+                                    <input type="text" id="descOtro" placeholder="Ej: Botellita">
+                                </div>
+                                <div class="flex-1">
+                                    <label for="priceOtro">Precio</label>
+                                    <input type="number" id="priceOtro" placeholder="RD$">
+                                </div>
+                            </div>
+                            <div class="input-row">
+                                <div class="flex-1">
+                                    <label for="qtyOtro">Cant.</label>
+                                    <input type="number" id="qtyOtro" value="1">
+                                </div>
+                                <button class="btn btn-primary flex-1" id="btnOtro" style="margin-top:28px">
+                                    <i class="bi bi-plus-lg"></i> Agregar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: CAMION -->
+            <div id="view-camion" class="view">
+                <div class="section-card">
+                    <h3><i class="bi bi-truck"></i> Venta Camión</h3>
+
+                    <div class="stat-card primary" style="margin-bottom: 20px;">
+                        <div class="icon-box"><i class="bi bi-box-seam"></i></div>
+                        <div class="stat-info">
+                            <span class="label">Total Camión (Hoy)</span>
+                            <input type="text" id="totalCamion" readonly
+                                style="background: transparent; border: none; font-size: 24px; font-weight: 700; color: var(--text-main); padding: 0; margin-top: 4px;"
+                                value="0">
+                        </div>
+                    </div>
+
+                    <div class="quick-actions">
+                        <div class="action-group">
+                            <label for="qtyCamion">Botellón (<span id="priceCamion">25</span> RD$)</label>
+                            <input type="number" id="qtyCamion" class="form-control" placeholder="Cantidad"
+                                style="font-size:18px">
+                        </div>
+
+                        <div class="action-group">
+                            <label>Modalidad</label>
+                            <div style="display:flex; gap:16px; margin-bottom:10px;">
+                                <div
+                                    style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.05); padding:8px 12px; border-radius:8px; flex:1;">
+                                    <input type="radio" id="modeSolo" name="camionMode" value="solo">
+                                    <label for="modeSolo" style="margin:0; cursor:pointer;">Solo</label>
+                                </div>
+                                <div
+                                    style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.05); padding:8px 12px; border-radius:8px; flex:1;">
+                                    <input type="radio" id="modeAyudante" name="camionMode" value="ayudante">
+                                    <label for="modeAyudante" style="margin:0; cursor:pointer;">Con Ayudante</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="action-group">
+                            <label for="commentCamion">Comentario (Opcional)</label>
+                            <input type="text" id="commentCamion" placeholder="Detalles extra...">
+                        </div>
+
+                        <button class="btn btn-primary full-width" id="btnCamion"
+                            style="margin-top:10px; height:50px; font-size:16px">
+                            <i class="bi bi-check-circle-fill"></i> Registrar Venta
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: GASTOS -->
+            <div id="view-gastos" class="view">
+                <div class="section-card">
+                    <h3><i class="bi bi-wallet2"></i> Registrar Gasto</h3>
+                    <div class="quick-actions">
+                        <div class="input-row">
+                            <div class="flex-1">
+                                <label for="gastoMonto">Monto (RD$)</label>
+                                <input type="number" id="gastoMonto" placeholder="0.00">
+                            </div>
+                        </div>
+                        <div class="input-row">
+                            <div class="flex-2">
+                                <label for="gastoDesc">Descripción</label>
+                                <input type="text" id="gastoDesc" placeholder="Ej: Combustible, Comida...">
+                            </div>
+                        </div>
+                        <button class="btn btn-warning full-width" id="btnGasto">
+                            <i class="bi bi-dash-circle"></i> Registrar Gasto
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: REPORTES -->
+            <div id="view-reportes" class="view">
+                <div class="section-card">
+                    <h3><i class="bi bi-sliders"></i> Filtros</h3>
+                    <div class="filters-bar">
+                        <div class="filter-group">
+                            <label for="reportStart">Desde</label>
+                            <input type="date" id="reportStart">
+                        </div>
+                        <div class="filter-group">
+                            <label for="reportEnd">Hasta</label>
+                            <input type="date" id="reportEnd">
+                        </div>
+                        <div class="filter-actions">
+                            <button class="btn btn-primary" id="btnFilterReport">Filtrar</button>
+                            <button class="btn btn-outline" id="btnResetReport">Hoy</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="report-grid">
+                    <!-- Financial Summary -->
+                    <div class="summary-card">
+                        <div class="section-card">
+                            <h3>Rentabilidad Neta</h3>
+                            <div class="big-stat">
+                                <span id="reportNetProfit">RD$ 0.00</span>
+                            </div>
+                            <div class="stat-row">
+                                <span>Margen</span>
+                                <span id="reportMargin" style="font-weight:bold">0%</span>
+                            </div>
+                        </div>
+
+                        <div class="section-card">
+                            <h3>Desglose de Ventas</h3>
+                            <div style="height:250px; position:relative;">
+                                <canvas id="salesPieChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts & Tables -->
+                    <div class="charts-column">
+                        <div class="section-card chart-card">
+                            <h3>Tendencia de Ventas</h3>
+                            <div style="height:300px; position:relative;">
+                                <canvas id="trendChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="section-card">
+                            <h3>Ranking Empleados</h3>
+                            <div class="table-responsive">
+                                <table class="modern-table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Nombre</th>
+                                            <th>Cant.</th>
+                                            <th>Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="employeeRankingTable">
+                                        <!-- JS populated -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: HISTORIAL -->
+            <div id="view-historial" class="view">
+                <div class="section-card">
+                    <div class="card-header">
+                        <h3><i class="bi bi-clock-history"></i> Historial de Movimientos</h3>
+                        <select id="filterHistoryDate" style="width:auto;">
+                            <option value="all">Todo</option>
+                            <!-- More options could be added -->
+                        </select>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Hora</th>
+                                    <th>Tipo</th>
+                                    <th>Detalle</th>
+                                    <th class="text-right">Cant.</th>
+                                    <th class="text-right">Precio</th>
+                                    <th class="text-right">Total</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyTableBody">
+                                <!-- JS populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
 
     <!-- Scripts -->
     <script type="module" src="js/script.js?v=10"></script>
