@@ -47,26 +47,25 @@ body {
 }
 
 /* Layout */
+/* Layout (Desktop Default) */
 .app-container {
     display: flex;
-    height: 100%;
+    height: 100vh;
     width: 100%;
     overflow: hidden;
+    background: var(--bg-dark);
 }
 
 .sidebar {
     width: 260px;
-    background: rgba(1, 22, 39, 0.95);
-    /* Matches bg-dark */
+    background: rgba(1, 22, 39, 0.98);
     border-right: 1px solid var(--border);
     padding: 24px;
     display: flex;
     flex-direction: column;
     height: 100%;
     flex-shrink: 0;
-    backdrop-filter: blur(10px);
     z-index: 100;
-    overflow-y: auto;
 }
 
 .main-content {
@@ -74,101 +73,106 @@ body {
     height: 100%;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 80px 20px 100px 20px;
-    /* Adjusted padding for fixed header/nav */
-    max-width: 480px;
-    /* Mobile width simulation */
+    padding: 30px 40px;
+    max-width: 1200px;
+    /* Limit content width for readability */
     margin: 0 auto;
-    /* Center on desktop */
+    width: 100%;
     position: relative;
-    scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
+}
+
+.main-content::before {
+    display: none;
+    /* No background logo on desktop */
+}
+
+/* Hide Mobile Top Bar by default */
+.app-container>.top-bar {
+    display: none;
+}
+
+/* Show Desktop Brand */
+.brand.desktop-only {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 40px;
+    padding: 0 12px;
+}
+
+.brand .logo {
+    height: 40px;
+    width: auto;
+}
+
+.brand .app-title {
+    font-size: 24px;
+    margin-left: 0;
+}
+
+/* Navigation Links (Desktop Default) */
+.nav-links {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
     width: 100%;
 }
 
-/* Desktop Background Wrapper */
-@media (min-width: 768px) {
-    body {
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 100dvh;
-    }
-
-    .app-container {
-        max-width: 480px;
-        height: 95vh;
-        /* Slightly less than full height for frame effect */
-        max-height: 900px;
-        background: var(--bg-dark);
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        position: relative;
-        border-radius: 24px;
-        /* Rounded corners for device look */
-        overflow: hidden;
-        /* Clip content to corners */
-        border: 8px solid rgba(255, 255, 255, 0.05);
-        /* Subtle frame */
-    }
-
-    /* The following properties were misplaced and are now removed or correctly placed */
-    /* height: 100dvh; */
-    /* background: var(--bg-dark); */
-    /* box-shadow: 0 0 50px rgba(0, 0, 0, 0.5); */
-    /* position: relative; */
-
-    .sidebar {
-        display: flex;
-        /* Show sidebar (bottom nav) on desktop */
-        position: absolute;
-        /* Keep inside container */
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        border-radius: 0 0 24px 24px;
-        /* Match container radius */
-        background: rgba(1, 22, 39, 0.95);
-        /* Matches bg-dark */
-        border-right: none;
-        border-top: 1px solid var(--border);
-        padding: 16px 24px;
-        flex-direction: row;
-        height: auto;
-        justify-content: space-around;
-        align-items: center;
-        overflow-y: hidden;
-        z-index: 100;
-    }
-
-    .top-bar {
-        position: absolute;
-        /* Keep inside container */
-        top: 0;
-        left: 0;
-        width: 100%;
-        border-radius: 24px 24px 0 0;
-        /* Match container radius */
-        max-width: none;
-        /* Reset max-width if set elsewhere */
-        transform: none;
-        /* Reset transform */
-        background: rgba(1, 22, 39, 0.95);
-        /* Matches bg-dark */
-        padding: 24px;
-        border-bottom: 1px solid var(--border);
-        z-index: 100;
-    }
-
-    /* Ensure fixed elements stay within the container width */
-    /* .top-bar,
-    .bottom-nav {
-        max-width: 480px;
-        left: 50%;
-        transform: translateX(-50%);
-    } */
+.nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+    text-align: left;
+    width: 100%;
 }
+
+.nav-btn:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.nav-btn.active {
+    background: linear-gradient(90deg, rgba(0, 194, 255, 0.15), transparent);
+    color: var(--primary);
+    border-left: 3px solid var(--primary);
+    border-radius: 4px 12px 12px 4px;
+}
+
+.nav-footer {
+    display: flex;
+    gap: 12px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    margin-top: auto;
+}
+
+/* Header inside Main Content (Desktop) */
+.main-content .top-bar {
+    position: relative;
+    background: transparent;
+    box-shadow: none;
+    border-bottom: none;
+    padding: 0 0 20px 0;
+    height: auto;
+    backdrop-filter: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+}
+
+/* Desktop Media Query Removed - Now Default */
 
 /* Sidebar Elements */
 .brand {
@@ -719,6 +723,8 @@ label {
 
     /* Header */
     .top-bar {
+        display: flex;
+        /* Show on mobile */
         position: fixed;
         top: 0;
         left: 0;
