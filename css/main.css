@@ -644,10 +644,7 @@ label {
     }
 
     .app-title {
-        font-size: 20px;
-        font-weight: 700;
-        color: var(--text-main);
-        margin-left: 8px;
+        display: none;
     }
 
     .brand,
@@ -658,9 +655,9 @@ label {
     .nav-links {
         flex-direction: row;
         width: 100%;
-        justify-content: space-around;
+        justify-content: space-between; /* Better spacing */
         gap: 0;
-        padding: 4px 0;
+        padding: 8px 16px; /* Add horizontal padding */
     }
 
     .nav-btn {
@@ -688,13 +685,12 @@ label {
     }
 
     /* Main Content */
+    /* Main Content */
     .main-content {
         order: 1;
         width: 100%;
-        padding: 80px 16px 16px 16px;
-        /* Increased top padding for fixed header */
+        padding: 86px 16px 120px 16px; /* Top: 70px header + 16px gap. Bottom: 120px for nav + safe area */
         margin: 0;
-        /* No margin-bottom needed as sidebar is flex item */
         position: relative;
         z-index: 1;
     }
