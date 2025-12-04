@@ -655,9 +655,11 @@ label {
     .nav-links {
         flex-direction: row;
         width: 100%;
-        justify-content: space-between; /* Better spacing */
+        justify-content: space-between;
+        /* Better spacing */
         gap: 0;
-        padding: 8px 16px; /* Add horizontal padding */
+        padding: 8px 16px;
+        /* Add horizontal padding */
     }
 
     .nav-btn {
@@ -689,7 +691,8 @@ label {
     .main-content {
         order: 1;
         width: 100%;
-        padding: 86px 16px 120px 16px; /* Top: 70px header + 16px gap. Bottom: 120px for nav + safe area */
+        /* Top: 0 to let sticky header hit the top. Bottom: 80px as requested */
+        padding: 0 16px 80px 16px;
         margin: 0;
         position: relative;
         z-index: 1;
@@ -704,12 +707,11 @@ label {
     /* Header */
     .top-bar {
         display: flex;
-        /* Show on mobile */
-        position: fixed;
+        /* Sticky to keep it fixed on screen but part of flow */
+        position: sticky;
         top: 0;
         left: 0;
         width: 100%;
-        display: flex;
         justify-content: space-between;
         align-items: center;
         padding: 15px 20px;
@@ -719,7 +721,8 @@ label {
         border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
         height: 70px;
-        /* Fixed height */
+        margin-bottom: 20px;
+        /* The "20px arriba" gap requested */
     }
 
     .header-actions {
