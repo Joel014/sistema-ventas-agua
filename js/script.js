@@ -729,12 +729,12 @@ class App {
 
         if (type === 'local') {
             const qty = parseInt(document.getElementById('qtyLocal').value) || 1;
-            const price = parseInt(document.getElementById('priceLocal').textContent);
+            const price = 25; // Fixed price for consistency
             venta = { ...venta, cantidad: qty, total: qty * price, detalle: 'Venta Local' };
             document.getElementById('qtyLocal').value = '';
         } else if (type === 'camion') {
             const qty = parseInt(document.getElementById('qtyCamion').value) || 1;
-            const price = parseInt(document.getElementById('priceCamion').textContent);
+            const price = 25; // Fixed price for consistency
             const comment = document.getElementById('commentCamion').value;
 
             const isSolo = document.getElementById('modeSolo').checked;
@@ -862,7 +862,7 @@ class App {
         // this.ui.showToast('Carga actualizada'); 
     }
 
-    async deleteRegistro(id) {
+    async deleteRegistro(id, collection) {
         const result = await Swal.fire({
             title: '¿Borrar?',
             text: "No se puede deshacer",
@@ -872,7 +872,7 @@ class App {
         });
 
         if (result.isConfirmed) {
-            await this.store.deleteRegistro(id);
+            await this.store.deleteRegistro(id, collection);
             this.ui.showToast('Eliminado', 'info');
         }
     }
@@ -923,7 +923,7 @@ class App {
         downloadAnchorNode.remove();
     }
 
-    async restoreData(input) {
+    async importData(input) {
         const file = input.files[0];
         if (!file) return;
 

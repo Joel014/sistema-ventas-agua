@@ -46,6 +46,25 @@ body {
     color: var(--text-main);
 }
 
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
 /* Layout */
 /* Layout (Desktop Default) */
 .app-container {
@@ -97,7 +116,7 @@ body {
     align-items: center;
     gap: 12px;
     margin-bottom: 40px;
-    padding: 0 12px;
+    padding: 0 0;
 }
 
 .brand .logo {
@@ -187,6 +206,7 @@ body {
     font-size: 24px;
     background: linear-gradient(135deg, var(--primary), var(--secondary));
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -631,7 +651,8 @@ label {
         width: 100%;
         height: auto;
         flex-direction: row;
-        padding: 0;
+        padding: 0 0;
+        /* As requested */
         background: rgba(15, 23, 42, 0.98);
         border-right: none;
         border-top: 1px solid var(--border);
@@ -656,10 +677,9 @@ label {
         flex-direction: row;
         width: 100%;
         justify-content: space-between;
-        /* Better spacing */
         gap: 0;
-        padding: 8px 16px;
-        /* Add horizontal padding */
+        padding: 4px 8px;
+        /* As requested */
     }
 
     .nav-btn {
@@ -688,11 +708,12 @@ label {
 
     /* Main Content */
     /* Main Content */
+    /* Main Content */
     .main-content {
         order: 1;
         width: 100%;
-        /* Top: 0 to let sticky header hit the top. Bottom: 80px as requested */
-        padding: 0 16px 80px 16px;
+        /* Top: 8px, Right: 16px, Bottom: 80px, Left: 16px */
+        padding: 8px 16px 80px 16px;
         margin: 0;
         position: relative;
         z-index: 1;
