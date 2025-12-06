@@ -248,8 +248,8 @@ class UI {
                 <td class="text-right">${isGasto ? '-' : this.formatCurrency(unitPrice)}</td>
                 <td class="text-right" style="${totalColor}">${this.formatCurrency(r.total)}</td>
                 <td>
-                    <button class="btn btn-sm btn-outline danger" onclick="window.app.deleteRegistro('${r.id}', '${collection}')" style="border-color:var(--danger);color:var(--danger)">
-                        <i class="bi bi-trash"></i> Borrar
+                    <button class="btn btn-sm btn-outline danger" onclick="window.app.deleteRegistro('${r.id}', '${collection}')" style="border-color:var(--danger);color:var(--danger)" title="Borrar">
+                        <i class="bi bi-trash"></i>
                     </button>
                 </td>
             </tr>
@@ -309,8 +309,8 @@ class UI {
         });
     }
 
-    renderReports(start = null, end = null) {
-        // 1. Get Data
+    async renderReports(start = null, end = null) {
+        // 1. Get Current Data
         const data = window.app.store.getReportData(start, end);
         const sales = data.filter(r => r.type === 'venta');
         const expenses = data.filter(r => r.type === 'gasto');
@@ -320,10 +320,48 @@ class UI {
         const totalExpenses = expenses.reduce((sum, r) => sum + (r.monto || 0), 0);
         const netProfit = totalSales - totalExpenses;
         const margin = totalSales > 0 ? ((netProfit / totalSales) * 100).toFixed(1) : 0;
+        const avgTicket = sales.length > 0 ? (totalSales / sales.length) : 0;
 
         document.getElementById('reportNetProfit').textContent = this.formatCurrency(netProfit);
         document.getElementById('reportNetProfit').style.color = netProfit >= 0 ? '#10b981' : '#ef4444';
         document.getElementById('reportMargin').textContent = `${margin}%`;
+        document.getElementById('reportAvgTicket').textContent = this.formatCurrency(avgTicket);
+
+        // 2.1 Growth Comparison (Previous Period)
+        const growthEl = document.getElementById('reportGrowth');
+        if (growthEl) {
+            try {
+                // Determine previous range
+                const currentStart = start ? new Date(start) : new Date();
+                const currentEnd = end ? new Date(end) : new Date();
+                const duration = currentEnd.getTime() - currentStart.getTime();
+
+                // Previous range is same duration before start
+                const prevEnd = new Date(currentStart.getTime() - 86400000); // Day before start
+                const prevStart = new Date(prevEnd.getTime() - duration);
+
+                const prevData = window.app.store.getReportData(prevStart.toISOString().split('T')[0], prevEnd.toISOString().split('T')[0]);
+                const prevSales = prevData.filter(r => r.type === 'venta').reduce((sum, r) => sum + (r.total || 0), 0);
+                const prevExpenses = prevData.filter(r => r.type === 'gasto').reduce((sum, r) => sum + (r.monto || 0), 0);
+                const prevNet = prevSales - prevExpenses;
+
+                if (prevNet !== 0) {
+                    const growth = ((netProfit - prevNet) / Math.abs(prevNet)) * 100;
+                    const icon = growth >= 0 ? 'bi-arrow-up-short' : 'bi-arrow-down-short';
+                    const color = growth >= 0 ? '#10b981' : '#ef4444';
+                    growthEl.innerHTML = `<i class="bi ${icon}"></i> ${Math.abs(growth).toFixed(1)}%`;
+                    growthEl.style.color = color;
+                    growthEl.style.background = growth >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+                } else {
+                    growthEl.innerHTML = '--';
+                    growthEl.style.background = 'rgba(255,255,255,0.05)';
+                    growthEl.style.color = 'var(--text-muted)';
+                }
+            } catch (e) {
+                console.error("Error calculating growth:", e);
+                growthEl.innerHTML = '--';
+            }
+        }
 
         // 3. Sales Breakdown (Pie Chart)
         const ctxPie = document.getElementById('salesPieChart');
@@ -415,6 +453,79 @@ class UI {
                 </tr>
             `).join('') || '<tr><td colspan="4" class="text-center">No hay datos</td></tr>';
         }
+
+        // Setup Export PDF Button
+        const btnExport = document.getElementById('btnExportPDF');
+        if (btnExport) {
+            // Remove old listener to prevent duplicates (simple way: clone node)
+            const newBtn = btnExport.cloneNode(true);
+            btnExport.parentNode.replaceChild(newBtn, btnExport);
+            newBtn.addEventListener('click', () => this.exportReportPDF(start, end, netProfit, margin, avgTicket, sales, expenses));
+        }
+    }
+
+    async exportReportPDF(start, end, netProfit, margin, avgTicket, sales, expenses) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+
+        // Header
+        doc.setFontSize(20);
+        doc.setTextColor(0, 194, 255); // Cyan
+        doc.text("AWA System - Reporte de Cierre", 14, 22);
+
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        const dateStr = start && end ? `${start} al ${end}` : new Date().toLocaleDateString();
+        doc.text(`Fecha de Generación: ${new Date().toLocaleString()}`, 14, 30);
+        doc.text(`Periodo: ${dateStr}`, 14, 35);
+
+        // Financial Summary
+        doc.setDrawColor(200);
+        doc.line(14, 40, 196, 40);
+
+        doc.setFontSize(12);
+        doc.setTextColor(0);
+        doc.text("Resumen Financiero", 14, 50);
+
+        const summaryData = [
+            ['Rentabilidad Neta', this.formatCurrency(netProfit)],
+            ['Margen', `${margin}%`],
+            ['Ticket Promedio', this.formatCurrency(avgTicket)],
+            ['Total Ventas', this.formatCurrency(sales.reduce((s, r) => s + r.total, 0))],
+            ['Total Gastos', this.formatCurrency(expenses.reduce((s, r) => s + r.monto, 0))]
+        ];
+
+        doc.autoTable({
+            startY: 55,
+            head: [['Métrica', 'Valor']],
+            body: summaryData,
+            theme: 'grid',
+            headStyles: { fillColor: [0, 194, 255] }
+        });
+
+        // Sales Breakdown
+        doc.text("Desglose de Ventas", 14, doc.lastAutoTable.finalY + 15);
+
+        const byType = { 'local': 0, 'camion': 0, 'delivery': 0 };
+        sales.forEach(r => {
+            if (byType[r.tipo] !== undefined) byType[r.tipo] += (r.total || 0);
+        });
+
+        const breakdownData = [
+            ['Local', this.formatCurrency(byType.local)],
+            ['Camión', this.formatCurrency(byType.camion)],
+            ['Delivery', this.formatCurrency(byType.delivery)]
+        ];
+
+        doc.autoTable({
+            startY: doc.lastAutoTable.finalY + 20,
+            head: [['Canal', 'Total']],
+            body: breakdownData,
+            theme: 'striped'
+        });
+
+        // Save
+        doc.save(`reporte_awa_${new Date().toISOString().slice(0, 10)}.pdf`);
     }
 }
 
@@ -430,6 +541,16 @@ class App {
 
         this.setupEventListeners();
         this.updateDate();
+
+        // Check for file protocol
+        if (window.location.protocol === 'file:') {
+            Swal.fire({
+                title: '⚠️ Modo Archivo Detectado',
+                html: 'Firebase Auth no funciona abriendo el archivo directamente.<br><br>Por favor usa el servidor local:<br><code>node server.js</code><br>y abre <b>http://localhost:8081</b>',
+                icon: 'error',
+                confirmButtonText: 'Entendido'
+            });
+        }
     }
 
     onLogin(role) {
@@ -588,6 +709,21 @@ class App {
             this.ui.renderReports(today, today);
         });
 
+        // History Filter Listeners
+        const historyDateInput = document.getElementById('historyDateInput');
+        const btnHistoryAll = document.getElementById('btnHistoryAll');
+
+        if (historyDateInput && btnHistoryAll) {
+            historyDateInput.addEventListener('change', () => {
+                this.refreshUI(this.store.state);
+            });
+
+            btnHistoryAll.addEventListener('click', () => {
+                historyDateInput.value = '';
+                this.refreshUI(this.store.state);
+            });
+        }
+
         // Initialize reports with today's date
         const today = new Date().toISOString().slice(0, 10);
         const startInput = document.getElementById('reportStart');
@@ -662,13 +798,12 @@ class App {
             ...gastos.map(g => ({ ...g, type: 'gasto', total: -(parseFloat(g.monto) || 0), detalle: g.descripcion, cantidad: 0 }))
         ].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
-        // Filter for History (Default: All)
-        const historyFilter = document.getElementById('filterHistoryDate').value;
+        // Filter for History
+        const historyDate = document.getElementById('historyDateInput').value;
         let historyRecords = allRecords;
 
-        if (historyFilter !== 'all') {
-            // If we had specific date logic, it would go here. 
-            // For now 'all' is the only option in the dropdown, but we ensure it shows everything.
+        if (historyDate) {
+            historyRecords = allRecords.filter(r => r.fecha && r.fecha.startsWith(historyDate));
         }
 
         this.ui.renderHistory(historyRecords);
@@ -697,9 +832,8 @@ class App {
 
         this.ui.renderRepartidores(repartidoresWithTotal);
 
-        // Render History (Show ALL records for reference, or change to todaysRecords if preferred)
-        // User asked for "reset", but "registered by day". Keeping history full is safer for "registered".
-        this.ui.renderHistory(allRecords);
+        // Render History (Already done above with filter)
+        // this.ui.renderHistory(allRecords);
 
         // Calculate Total Camion (TODAY only)
         const totalCamion = todaysRecords
@@ -710,6 +844,27 @@ class App {
         if (totalCamionInput) {
             totalCamionInput.value = totalCamion;
         }
+
+        // Calculate Total Local (TODAY only)
+        const totalLocal = todaysRecords
+            .filter(r => r.type === 'venta' && r.tipo === 'local')
+            .reduce((sum, r) => sum + (parseInt(r.cantidad) || 0), 0);
+
+        const totalLocalInput = document.getElementById('totalLocal');
+        if (totalLocalInput) {
+            totalLocalInput.value = totalLocal;
+        }
+
+        // Calculate Total Otro (TODAY only)
+        const totalOtro = todaysRecords
+            .filter(r => r.type === 'venta' && r.tipo === 'otro')
+            .reduce((sum, r) => sum + (parseInt(r.cantidad) || 0), 0);
+
+        const totalOtroInput = document.getElementById('totalOtro');
+        if (totalOtroInput) {
+            totalOtroInput.value = totalOtro;
+        }
+
 
         // Update chart if on reports view
         if (document.querySelector('.nav-btn[data-tab="reportes"]').classList.contains('active')) {
@@ -734,7 +889,7 @@ class App {
             document.getElementById('qtyLocal').value = '';
         } else if (type === 'camion') {
             const qty = parseInt(document.getElementById('qtyCamion').value) || 1;
-            const price = 25; // Fixed price for consistency
+            const price = 30; // Updated price
             const comment = document.getElementById('commentCamion').value;
 
             const isSolo = document.getElementById('modeSolo').checked;

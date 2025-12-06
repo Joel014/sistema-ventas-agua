@@ -14,8 +14,11 @@
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
-    <!-- Libraries -->
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- jsPDF & AutoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- Custom CSS -->
@@ -167,14 +170,23 @@
             <div id="view-planta" class="view">
                 <div class="sales-grid">
                     <!-- Venta Local -->
+                    <!-- Venta Local -->
                     <div class="section-card">
-                        <h3><i class="bi bi-shop"></i> Venta Local</h3>
+                        <div class="card-header" style="margin-bottom: 20px;">
+                            <h3><i class="bi bi-shop"></i> Venta Local</h3>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <span style="font-size:12px;color:var(--text-muted);text-transform:uppercase;">Total
+                                    Hoy:</span>
+                                <input type="text" id="totalLocal" readonly
+                                    style="width: 60px; padding: 4px 8px; font-size: 14px; text-align: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--primary); font-weight: bold; border-radius: 8px;"
+                                    value="0">
+                            </div>
+                        </div>
                         <div class="quick-actions">
                             <div class="action-group">
                                 <label for="qtyLocal">Botellón (<span id="priceLocal">25</span> RD$)</label>
                                 <div class="input-group">
-                                    <input type="number" id="qtyLocal" class="form-control" placeholder="Cant."
-                                        value="1">
+                                    <input type="number" id="qtyLocal" class="form-control" placeholder="Cant.">
                                     <button class="btn btn-primary" id="btnLocal">
                                         <i class="bi bi-check-lg"></i> Vender
                                     </button>
@@ -197,8 +209,18 @@
                     </div>
 
                     <!-- Otro Servicio -->
+                    <!-- Otro Servicio -->
                     <div class="section-card">
-                        <h3><i class="bi bi-stars"></i> Otro Servicio</h3>
+                        <div class="card-header" style="margin-bottom: 20px;">
+                            <h3><i class="bi bi-stars"></i> Otro Servicio</h3>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <span style="font-size:12px;color:var(--text-muted);text-transform:uppercase;">Total
+                                    Hoy:</span>
+                                <input type="text" id="totalOtro" readonly
+                                    style="width: 60px; padding: 4px 8px; font-size: 14px; text-align: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--primary); font-weight: bold; border-radius: 8px;"
+                                    value="0">
+                            </div>
+                        </div>
                         <div class="quick-actions">
                             <div class="input-row">
                                 <div class="flex-2">
@@ -213,7 +235,7 @@
                             <div class="input-row">
                                 <div class="flex-1">
                                     <label for="qtyOtro">Cant.</label>
-                                    <input type="number" id="qtyOtro" value="1">
+                                    <input type="number" id="qtyOtro">
                                 </div>
                                 <button class="btn btn-primary flex-1" id="btnOtro" style="margin-top:28px">
                                     <i class="bi bi-plus-lg"></i> Agregar
@@ -227,21 +249,20 @@
             <!-- VIEW: CAMION -->
             <div id="view-camion" class="view">
                 <div class="section-card">
-                    <h3><i class="bi bi-truck"></i> Venta Camión</h3>
-
-                    <div class="stat-card primary" style="margin-bottom: 20px;">
-                        <div class="icon-box"><i class="bi bi-box-seam"></i></div>
-                        <div class="stat-info">
-                            <span class="label">Total Camión (Hoy)</span>
+                    <div class="card-header" style="margin-bottom: 20px;">
+                        <h3><i class="bi bi-truck"></i> Venta Camión</h3>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:12px;color:var(--text-muted);text-transform:uppercase;">Total
+                                Hoy:</span>
                             <input type="text" id="totalCamion" readonly
-                                style="background: transparent; border: none; font-size: 24px; font-weight: 700; color: var(--text-main); padding: 0; margin-top: 4px;"
+                                style="width: 60px; padding: 4px 8px; font-size: 14px; text-align: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--primary); font-weight: bold; border-radius: 8px;"
                                 value="0">
                         </div>
                     </div>
 
                     <div class="quick-actions">
                         <div class="action-group">
-                            <label for="qtyCamion">Botellón (<span id="priceCamion">25</span> RD$)</label>
+                            <label for="qtyCamion">Botellón (<span id="priceCamion">30</span> RD$)</label>
                             <input type="number" id="qtyCamion" class="form-control" placeholder="Cantidad"
                                 style="font-size:18px">
                         </div>
@@ -250,14 +271,20 @@
                             <label>Modalidad</label>
                             <div style="display:flex; gap:16px; margin-bottom:10px;">
                                 <div
-                                    style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.05); padding:8px 12px; border-radius:8px; flex:1;">
+                                    style="display:flex; align-items:center; justify-content:center; gap:8px; background:rgba(255,255,255,0.05); padding:12px; border-radius:12px; flex:1; border:1px solid var(--border);">
                                     <input type="radio" id="modeSolo" name="camionMode" value="solo">
-                                    <label for="modeSolo" style="margin:0; cursor:pointer;">Solo</label>
+                                    <label for="modeSolo"
+                                        style="margin:0; cursor:pointer; display:flex; align-items:center; gap:6px;">
+                                        <i class="bi bi-person-fill" style="font-size:18px;"></i> Solo
+                                    </label>
                                 </div>
                                 <div
-                                    style="display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.05); padding:8px 12px; border-radius:8px; flex:1;">
+                                    style="display:flex; align-items:center; justify-content:center; gap:8px; background:rgba(255,255,255,0.05); padding:12px; border-radius:12px; flex:1; border:1px solid var(--border);">
                                     <input type="radio" id="modeAyudante" name="camionMode" value="ayudante">
-                                    <label for="modeAyudante" style="margin:0; cursor:pointer;">Con Ayudante</label>
+                                    <label for="modeAyudante"
+                                        style="margin:0; cursor:pointer; display:flex; align-items:center; gap:6px;">
+                                        <i class="bi bi-people-fill" style="font-size:18px;"></i> Ayudante
+                                    </label>
                                 </div>
                             </div>
                         </div>
@@ -315,6 +342,9 @@
                         <div class="filter-actions">
                             <button class="btn btn-primary" id="btnFilterReport">Filtrar</button>
                             <button class="btn btn-outline" id="btnResetReport">Hoy</button>
+                            <button class="btn btn-outline" id="btnExportPDF" title="Exportar PDF">
+                                <i class="bi bi-file-earmark-pdf"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -326,10 +356,19 @@
                             <h3>Rentabilidad Neta</h3>
                             <div class="big-stat">
                                 <span id="reportNetProfit">RD$ 0.00</span>
+                                <small id="reportGrowth"
+                                    style="font-size: 14px; margin-left: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--text-muted);">
+                                    --
+                                </small>
                             </div>
                             <div class="stat-row">
                                 <span>Margen</span>
                                 <span id="reportMargin" style="font-weight:bold">0%</span>
+                            </div>
+                            <div class="stat-row"
+                                style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);">
+                                <span>Ticket Promedio</span>
+                                <span id="reportAvgTicket" style="font-weight:bold">RD$ 0</span>
                             </div>
                         </div>
 
@@ -377,10 +416,12 @@
                 <div class="section-card">
                     <div class="card-header">
                         <h3><i class="bi bi-clock-history"></i> Historial de Movimientos</h3>
-                        <select id="filterHistoryDate" style="width:auto;">
-                            <option value="all">Todo</option>
-                            <!-- More options could be added -->
-                        </select>
+                        <div style="display:flex; gap:10px; align-items:center;">
+                            <input type="date" id="historyDateInput" class="form-control"
+                                style="width:auto; padding: 4px 8px; height: 38px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-main);">
+                            <button id="btnHistoryAll" class="btn btn-outline btn-sm"
+                                style="height: 38px;">Todo</button>
+                        </div>
                     </div>
                     <div class="table-responsive">
                         <table class="modern-table">

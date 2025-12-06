@@ -2,7 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-const port = 8080;
+const port = 8081;
 
 const mimeTypes = {
     '.html': 'text/html',
@@ -18,7 +18,8 @@ const mimeTypes = {
 const server = http.createServer((req, res) => {
     console.log(`Request: ${req.url}`);
 
-    let filePath = '.' + req.url;
+    // Remove query strings (e.g. ?v=12)
+    let filePath = '.' + req.url.split('?')[0];
     if (filePath === './') {
         filePath = './index.html';
     }
