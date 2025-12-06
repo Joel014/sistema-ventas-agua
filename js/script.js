@@ -736,25 +736,39 @@ class App {
         // Swipe Navigation
         let touchStartX = 0;
         let touchEndX = 0;
+        let touchStartY = 0;
+        let touchEndY = 0;
 
         document.addEventListener('touchstart', e => {
             touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
         }, { passive: true });
 
         document.addEventListener('touchend', e => {
             touchEndX = e.changedTouches[0].screenX;
+            touchEndY = e.changedTouches[0].screenY;
+
+            // Check if swipe originated from a scrollable container
+            const target = e.target;
+            const scrollable = target.closest('.table-responsive') || target.closest('.scrollable-x');
+
+            if (scrollable) {
+                // If scrolling horizontally, don't swipe
+                if (scrollable.scrollWidth > scrollable.clientWidth) {
+                    return;
+                }
+            }
+
             handleSwipe();
         }, { passive: true });
 
-        // Prevent swipe when scrolling table
-        const tableContainer = document.querySelector('.table-responsive');
-        if (tableContainer) {
-            tableContainer.addEventListener('touchstart', e => e.stopPropagation(), { passive: true });
-            tableContainer.addEventListener('touchend', e => e.stopPropagation(), { passive: true });
-        }
-
         const handleSwipe = () => {
             const SWIPE_THRESHOLD = 50;
+            const VERTICAL_THRESHOLD = 50; // Ignore if scrolled vertically too much
+
+            // Calculate vertical difference
+            if (Math.abs(touchEndY - touchStartY) > VERTICAL_THRESHOLD) return;
+
             if (touchEndX < touchStartX - SWIPE_THRESHOLD) {
                 // Swipe Left (Next Tab)
                 this.navigateTabs(1);
@@ -1018,12 +1032,25 @@ class App {
     }
 
     async deleteRegistro(id, collection) {
+        // Security Check: Only admin can delete
+        if (this.auth.userRole !== 'admin') {
+            Swal.fire({
+                title: 'Acceso Denegado',
+                text: 'Solo el administrador puede borrar registros.',
+                icon: 'error',
+                confirmButtonColor: 'var(--primary)'
+            });
+            return;
+        }
+
         const result = await Swal.fire({
             title: '¿Borrar?',
             text: "No se puede deshacer",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Sí, borrar'
+            confirmButtonText: 'Sí, borrar',
+            confirmButtonColor: 'var(--danger)',
+            cancelButtonColor: 'var(--text-muted)'
         });
 
         if (result.isConfirmed) {
