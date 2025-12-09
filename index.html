@@ -21,8 +21,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+    <!-- Firebase SDK (v8.10.1 for compatibility with current script.js) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/main.css?v=12">
+    <link rel="stylesheet" href="css/main.css?v=18">
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
@@ -43,6 +48,47 @@
             });
         }
     </script>
+    <style>
+        @media (max-width: 768px) {
+            .sidebar .brand {
+                display: none !important;
+            }
+
+            .sidebar {
+                padding-top: 20px;
+            }
+
+            /* Mobile Layout Adjustments - Global for ALL Cards */
+            .section-card .card-header {
+                display: grid !important;
+                grid-template-columns: 1fr auto !important;
+                gap: 10px !important;
+                align-items: center !important;
+                width: 100% !important;
+            }
+
+            .section-card .card-header h3 {
+                margin-bottom: 0 !important;
+                width: 100% !important;
+                overflow: hidden;
+                white-space: nowrap;
+                text-overflow: ellipsis;
+                font-size: 1.1rem;
+            }
+
+            /* Force controls to the far right via Grid placement */
+            .section-card .card-header .header-controls,
+            .section-card .card-header #btnAddRepartidor,
+            .section-card .card-header .btn-icon-small,
+            .section-card .card-header div[style*="display:flex"] {
+                margin: 0 !important;
+                position: static !important;
+                justify-self: end !important;
+                /* Ensure internal flex stays intact */
+                display: flex !important;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -69,9 +115,8 @@
         <!-- SIDEBAR -->
         <aside class="sidebar">
             <div class="brand desktop-only">
-                <!-- Logo Image Removed -->
-                <div class="app-title">
-                    <span style="color:var(--primary)">AWA</span> System
+                <div class="logo">
+                    <img src="img/logo.png" alt="AWA Logo" style="max-width: 140px; height: auto;">
                 </div>
             </div>
 
@@ -121,7 +166,7 @@
             <!-- TOP BAR -->
             <header class="top-bar">
                 <div>
-                    <h2 id="pageTitle">Dashboard</h2>
+                    <div class="page-title" id="pageTitle"><span style="color:var(--primary)">AWA</span> System</div>
                     <div class="date-display" id="currentDate">Cargando fecha...</div>
                 </div>
                 <div class="mobile-actions">
@@ -173,9 +218,7 @@
                     <div class="section-card">
                         <div class="card-header" style="margin-bottom: 20px;">
                             <h3><i class="bi bi-shop"></i> Venta Local</h3>
-                            <div style="display:flex;align-items:center;gap:8px;">
-                                <span style="font-size:12px;color:var(--text-muted);text-transform:uppercase;">Total
-                                    Hoy:</span>
+                            <div class="header-controls" style="display:flex;align-items:center;gap:8px;">
                                 <input type="text" id="totalLocal" readonly
                                     style="width: 60px; padding: 4px 8px; font-size: 14px; text-align: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--primary); font-weight: bold; border-radius: 8px;"
                                     value="0">
@@ -198,7 +241,7 @@
                     <div class="section-card">
                         <div class="card-header">
                             <h3><i class="bi bi-bicycle"></i> Delivery</h3>
-                            <button class="btn btn-sm btn-outline" id="btnAddRepartidor">
+                            <button class="btn btn-sm btn-outline header-controls" id="btnAddRepartidor">
                                 <i class="bi bi-person-plus"></i> Nuevo
                             </button>
                         </div>
@@ -212,9 +255,7 @@
                     <div class="section-card">
                         <div class="card-header" style="margin-bottom: 20px;">
                             <h3><i class="bi bi-stars"></i> Otro Servicio</h3>
-                            <div style="display:flex;align-items:center;gap:8px;">
-                                <span style="font-size:12px;color:var(--text-muted);text-transform:uppercase;">Total
-                                    Hoy:</span>
+                            <div class="header-controls" style="display:flex;align-items:center;gap:8px;">
                                 <input type="text" id="totalOtro" readonly
                                     style="width: 60px; padding: 4px 8px; font-size: 14px; text-align: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--primary); font-weight: bold; border-radius: 8px;"
                                     value="0">
@@ -250,9 +291,7 @@
                 <div class="section-card">
                     <div class="card-header" style="margin-bottom: 20px;">
                         <h3><i class="bi bi-truck"></i> Venta Camión</h3>
-                        <div style="display:flex;align-items:center;gap:8px;">
-                            <span style="font-size:12px;color:var(--text-muted);text-transform:uppercase;">Total
-                                Hoy:</span>
+                        <div class="header-controls" style="display:flex;align-items:center;gap:8px;">
                             <input type="text" id="totalCamion" readonly
                                 style="width: 60px; padding: 4px 8px; font-size: 14px; text-align: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--primary); font-weight: bold; border-radius: 8px;"
                                 value="0">
@@ -304,7 +343,14 @@
             <!-- VIEW: GASTOS -->
             <div id="view-gastos" class="view">
                 <div class="section-card">
-                    <h3><i class="bi bi-wallet2"></i> Registrar Gasto</h3>
+                    <div class="card-header" style="margin-bottom: 20px;">
+                        <h3><i class="bi bi-wallet2"></i> Registrar Gasto</h3>
+                        <div class="header-controls" style="display:flex;align-items:center;gap:8px;">
+                            <input type="text" id="totalGastos" readonly
+                                style="width: 80px; padding: 4px 8px; font-size: 14px; text-align: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--danger); font-weight: bold; border-radius: 8px;"
+                                value="0">
+                        </div>
+                    </div>
                     <div class="quick-actions">
                         <div class="input-row">
                             <div class="flex-1">
@@ -418,8 +464,15 @@
                         <div style="display:flex; gap:10px; align-items:center;">
                             <input type="date" id="historyDateInput" class="form-control"
                                 style="width:auto; padding: 4px 8px; height: 38px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-main);">
-                            <button id="btnHistoryAll" class="btn btn-outline btn-sm"
-                                style="height: 38px;">Todo</button>
+                            <select id="historyTypeFilter" class="form-select"
+                                style="width:auto; padding: 4px 8px; height: 38px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-main); border-radius: 6px;">
+                                <option value="">Todo</option>
+                                <option value="Local">Local</option>
+                                <option value="Delivery">Delivery</option>
+                                <option value="Camión">Camión</option>
+                                <option value="Gasto">Gastos</option>
+                                <option value="Otros">Otros</option>
+                            </select>
                         </div>
                     </div>
                     <div class="table-responsive">
@@ -448,7 +501,7 @@
     </div>
 
     <!-- Scripts -->
-    <script type="module" src="js/script.js?v=10"></script>
+    <script src="script.js?v=58"></script>
 </body>
 
 </html>
