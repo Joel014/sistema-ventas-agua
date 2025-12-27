@@ -27,11 +27,11 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/main.css?v=18">
+    <link rel="stylesheet" href="css/main.css?v=113">
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#00C2FF">
+    <meta name="theme-color" content="#001e36">
     <!-- Logo removed from touch icon as well if desired, but keeping for now as it's metadata -->
     <link rel="apple-touch-icon" href="img/logo.png">
 
@@ -55,7 +55,7 @@
             }
 
             .sidebar {
-                padding-top: 20px;
+                padding-top: 0px;
             }
 
             /* Mobile Layout Adjustments - Global for ALL Cards */
@@ -87,6 +87,92 @@
                 /* Ensure internal flex stays intact */
                 display: flex !important;
             }
+
+            /* OVERRIDE for Historial: Stack vertically */
+            #view-historial .section-card .card-header,
+            #view-history .section-card .card-header {
+                /* Covering both potential IDs just in case */
+                display: block !important;
+                text-align: left;
+            }
+
+            #view-historial .section-card .card-header h3,
+            #view-history .section-card .card-header h3 {
+                margin-bottom: 15px !important;
+                width: 100% !important;
+                white-space: normal !important;
+            }
+
+            #view-historial .section-card .card-header div,
+            #view-history .section-card .card-header div {
+                justify-self: start !important;
+                margin-left: 0 !important;
+                width: 100%;
+            }
+
+            /* Responsive Table (Stacked Cards) */
+            #tablaRegistros,
+            #tablaRegistros tbody,
+            #tablaRegistros tr,
+            #tablaRegistros td {
+                display: block !important;
+                width: 100% !important;
+                box-sizing: border-box;
+            }
+
+            #tablaRegistros thead {
+                display: none !important;
+            }
+
+            #tablaRegistros tr {
+                margin-bottom: 15px !important;
+                border: 1px solid var(--border);
+                border-radius: 12px !important;
+                background: rgba(255, 255, 255, 0.03) !important;
+                padding: 10px !important;
+            }
+
+            #tablaRegistros td {
+                text-align: right !important;
+                padding: 8px 10px !important;
+                padding-left: 40% !important;
+                position: relative !important;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            }
+
+            #tablaRegistros td:last-child {
+                border-bottom: none;
+            }
+
+            #tablaRegistros td::before {
+                content: attr(data-label);
+                position: absolute;
+                left: 10px;
+                top: 8px;
+                width: 40%;
+                white-space: nowrap;
+                text-align: left;
+                font-weight: 600;
+                color: var(--text-muted);
+            }
+
+            /* Full Width History Card Fix */
+            #view-historial .section-card {
+                padding-left: 0 !important;
+                padding-right: 0 !important;
+            }
+
+            #view-historial .section-card .card-header {
+                padding-left: 20px !important;
+                padding-right: 20px !important;
+                margin-bottom: 15px !important;
+            }
+
+            #tablaRegistros tr {
+                margin-left: 10px !important;
+                margin-right: 10px !important;
+                width: auto !important;
+            }
         }
     </style>
 </head>
@@ -103,7 +189,14 @@
             </div>
             <form id="loginForm" style="display:flex;flex-direction:column;gap:16px">
                 <input type="email" id="loginEmail" placeholder="Correo electrónico" required>
-                <input type="password" id="loginPass" placeholder="Contraseña" required>
+                <div style="position:relative;">
+                    <input type="password" id="loginPass" placeholder="Contraseña" required
+                        style="width:100%; padding-right: 40px;">
+                    <span onclick="togglePasswordVisibility()"
+                        style="position:absolute; right:12px; top:50%; transform:translateY(-50%); cursor:pointer; color:var(--text-muted);">
+                        <i class="bi bi-eye" id="togglePasswordIcon"></i>
+                    </span>
+                </div>
                 <button type="submit" class="btn btn-primary full-width">Entrar</button>
             </form>
         </div>
@@ -145,6 +238,10 @@
                     <i class="bi bi-clock-history"></i>
                     <span>Historial</span>
                 </button>
+                <button class="nav-btn" data-tab="produccion">
+                    <i class="bi bi-speedometer2"></i>
+                    <span>Producción</span>
+                </button>
             </nav>
 
             <div class="nav-footer">
@@ -178,26 +275,65 @@
 
             <!-- VIEW: DASHBOARD -->
             <div id="view-dashboard" class="view active">
-                <div class="stats-grid">
-                    <div class="stat-card primary">
-                        <div class="icon-box"><i class="bi bi-cash-stack"></i></div>
+                <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                    <!-- Sales Card -->
+                    <div class="stat-card"
+                        style="background: linear-gradient(135deg, rgba(46, 204, 113, 0.1), rgba(46, 204, 113, 0.05)); border: 1px solid rgba(46, 204, 113, 0.2);">
+                        <div class="icon-box" style="background: rgba(46, 204, 113, 0.2); color: #2ecc71;"><i
+                                class="bi bi-cash-stack"></i></div>
                         <div class="stat-info">
                             <span class="label">Venta Total</span>
-                            <span class="value" id="dashTotal">RD$ 0.00</span>
+                            <span class="value" id="dashTotal" style="color: #2ecc71;">RD$ 0.00</span>
+                            <div class="stat-change" id="diffTotal"
+                                style="font-size: 11px; margin-top: 4px; display: flex; align-items: center; gap: 4px; color: var(--text-muted);">
+                                <span>-- vs ayer</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="stat-card success">
-                        <div class="icon-box"><i class="bi bi-droplet-fill"></i></div>
+
+                    <!-- Bottles Card -->
+                    <div class="stat-card"
+                        style="background: linear-gradient(135deg, rgba(0, 194, 255, 0.1), rgba(0, 194, 255, 0.05)); border: 1px solid rgba(0, 194, 255, 0.2);">
+                        <div class="icon-box" style="background: rgba(0, 194, 255, 0.2); color: #00c2ff;"><i
+                                class="bi bi-droplet-fill"></i></div>
                         <div class="stat-info">
                             <span class="label">Botellones</span>
-                            <span class="value" id="dashBotellones">0</span>
+                            <span class="value" id="dashBotellones" style="color: #00c2ff;">0</span>
+                            <div class="stat-change" id="diffBotellones"
+                                style="font-size: 11px; margin-top: 4px; display: flex; align-items: center; gap: 4px; color: var(--text-muted);">
+                                <span>-- vs ayer</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="stat-card warning">
-                        <div class="icon-box"><i class="bi bi-receipt"></i></div>
+
+                    <!-- Stock Card (New) -->
+                    <div class="stat-card"
+                        style="background: linear-gradient(135deg, rgba(155, 89, 182, 0.1), rgba(155, 89, 182, 0.05)); border: 1px solid rgba(155, 89, 182, 0.2);">
+                        <div class="icon-box" style="background: rgba(155, 89, 182, 0.2); color: #9b59b6;"><i
+                                class="bi bi-box-seam"></i></div>
                         <div class="stat-info">
-                            <span class="label">Transacciones</span>
-                            <span class="value" id="dashTransacciones">0</span>
+                            <span class="label">Stock Planta</span>
+                            <span class="value" id="dashStock" style="color: #9b59b6;">--</span>
+                            <div class="stat-change"
+                                style="font-size: 11px; margin-top: 4px; color: var(--text-muted);">
+                                <span id="dashStockDetail">Prod: 0 - Menos: 0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Debt Card (Condensed) -->
+                    <div class="stat-card"
+                        style="background: linear-gradient(135deg, rgba(231, 29, 54, 0.1), rgba(231, 29, 54, 0.05)); border: 1px solid rgba(231, 29, 54, 0.2);">
+                        <div class="icon-box" style="background: rgba(231, 29, 54, 0.2); color: #e71d36;"><i
+                                class="bi bi-exclamation-circle-fill"></i></div>
+                        <div class="stat-info">
+                            <span class="label" style="color: #ffadb6;">Por Cobrar</span>
+                            <span class="value" id="dashDeuda" style="color: #e71d36;">RD$ 0.00</span>
+                            <div class="stat-change"
+                                style="font-size: 11px; margin-top: 4px; color: var(--text-muted);">
+                                <span onclick="toggleDebtsModal()"
+                                    style="text-decoration:underline; cursor:pointer;">Ver detalles</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -299,37 +435,65 @@
                     </div>
 
                     <div class="quick-actions">
+                        <!-- Client Selector Section -->
                         <div class="action-group">
-                            <label for="qtyCamion">Botellón (<span id="priceCamion">30</span> RD$)</label>
-                            <input type="number" id="qtyCamion" class="form-control" placeholder="Cantidad"
-                                style="font-size:18px">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <label for="clienteCamionSelector">Cliente</label>
+                                <button onclick="toggleClientesModal()"
+                                    style="background:rgba(0,194,255,0.1); border:none; border-radius:4px; padding:4px 8px; color:var(--primary); font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:4px; margin:10px;">
+                                    <i class="bi bi-gear-fill"></i> Gestionar
+                                </button>
+                            </div>
+                            <select id="clienteCamionSelector" class="form-control"
+                                onchange="seleccionarClienteCamion()">
+                                <option value="" data-precio="30">Cliente Casual (30 RD$)</option>
+                                <!-- Populated dynamically -->
+                            </select>
                         </div>
 
                         <div class="action-group">
-                            <label>Modalidad</label>
-                            <div style="display:flex; gap:16px; margin-bottom:10px;">
-                                <div
-                                    style="display:flex; align-items:center; justify-content:center; gap:8px; background:rgba(255,255,255,0.05); padding:12px; border-radius:12px; flex:1; border:1px solid var(--border);">
-                                    <input type="radio" id="modeSolo" name="camionMode" value="solo">
-                                    <label for="modeSolo"
-                                        style="margin:0; cursor:pointer; display:flex; align-items:center; gap:6px;">
-                                        <i class="bi bi-person-fill" style="font-size:18px;"></i> Solo
-                                    </label>
+                            <div class="input-row">
+                                <div class="flex-1">
+                                    <label for="qtyCamion">Botellones Llenos (<span id="priceCamion">30</span>
+                                        RD$)</label>
+                                    <input type="number" id="qtyCamion" class="form-control" placeholder="Cant."
+                                        style="font-size:18px">
                                 </div>
-                                <div
-                                    style="display:flex; align-items:center; justify-content:center; gap:8px; background:rgba(255,255,255,0.05); padding:12px; border-radius:12px; flex:1; border:1px solid var(--border);">
-                                    <input type="radio" id="modeAyudante" name="camionMode" value="ayudante">
-                                    <label for="modeAyudante"
-                                        style="margin:0; cursor:pointer; display:flex; align-items:center; gap:6px;">
-                                        <i class="bi bi-people-fill" style="font-size:18px;"></i> Ayudante
-                                    </label>
+                                <div class="flex-1">
+                                    <label for="qtyCamionVacios" style="color:var(--text-muted)">Vacíos
+                                        Recogidos</label>
+                                    <input type="number" id="qtyCamionVacios" class="form-control" placeholder="Cant."
+                                        style="font-size:18px; border-color:var(--text-muted);">
                                 </div>
                             </div>
                         </div>
 
                         <div class="action-group">
+                            <label>Modalidad</label>
+                            <div class="input-row">
+                                <div class="flex-1">
+                                    <label class="radio-card">
+                                        <input type="radio" name="camionMode" value="solo">
+                                        <span class="radio-label">
+                                            <i class="bi bi-person-fill"></i> Solo
+                                        </span>
+                                    </label>
+                                </div>
+                                <div class="flex-1">
+                                    <label class="radio-card">
+                                        <input type="radio" name="camionMode" value="ayudante">
+                                        <span class="radio-label">
+                                            <i class="bi bi-people-fill"></i> Ayudante
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="action-group" style="position:relative;">
                             <label for="commentCamion">Comentario (Opcional)</label>
                             <input type="text" id="commentCamion" placeholder="Detalles extra...">
+                            <div id="suggestionsList"></div>
                         </div>
 
                         <button class="btn btn-primary full-width" id="btnCamion"
@@ -338,16 +502,48 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- Ruta del Dia Section -->
+                <div class="section-card" style="margin-top:20px;">
+                    <div
+                        style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:15px;">
+                        <h3 style="margin:0; font-size:18px;">📋 Ruta de Hoy</h3>
+                        <div style="display:flex; gap:5px;">
+                            <button onclick="solicitarNotificaciones()"
+                                style="background:rgba(255,255,255,0.1); border:none; border-radius:6px; padding:6px 10px; color:var(--text-muted); cursor:pointer;"
+                                title="Activar Sonido/Notificaciones">
+                                <i class="bi bi-bell-fill"></i>
+                            </button>
+                            <button onclick="toggleClientesModal()" class="btn-sm"
+                                style="background:var(--primary); color:white; border:none; border-radius:6px; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:5px;">
+                                <i class="bi bi-truck"></i> Gestionar Ruta (Agregar)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- NEW: DEBT BUTTON FOR CAMION -->
+                    <button onclick="toggleDebtsModal()" class="btn full-width"
+                        style="margin-bottom:20px; background:rgba(231, 29, 54, 0.1); color:#e71d36; border:1px solid #e71d36; font-weight:600;">
+                        <i class="bi bi-cash-coin"></i> Cuentas por Cobrar
+                    </button>
+
+                    <div id="rutaDiaContainer">
+                        <!-- Populated by JS -->
+                        <p style="text-align:center; color:var(--text-muted);">Cargando ruta...</p>
+                    </div>
+                </div>
+
             </div>
 
             <!-- VIEW: GASTOS -->
             <div id="view-gastos" class="view">
                 <div class="section-card">
-                    <div class="card-header" style="margin-bottom: 20px;">
+                    <div class="card-header"
+                        style="margin-bottom: 20px; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;">
                         <h3><i class="bi bi-wallet2"></i> Registrar Gasto</h3>
                         <div class="header-controls" style="display:flex;align-items:center;gap:8px;">
                             <input type="text" id="totalGastos" readonly
-                                style="width: 80px; padding: 4px 8px; font-size: 14px; text-align: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--danger); font-weight: bold; border-radius: 8px;"
+                                style="min-width: 50px; width: auto; padding: 4px 6px; font-size: 14px; text-align: center; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--danger); font-weight: bold; border-radius: 8px;"
                                 value="0">
                         </div>
                     </div>
@@ -359,9 +555,25 @@
                             </div>
                         </div>
                         <div class="input-row">
+                            <div class="flex-1">
+                                <label for="gastoCategoria">Categoría</label>
+                                <select id="gastoCategoria"
+                                    style="width:100%; padding:12px; background:rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:8px; color:var(--text-main); font-size:16px; outline:none; margin-bottom:10px;">
+                                    <option value="" selected>Selecciona tipo...</option>
+                                    <option value="Combustible">⛽ Combustible</option>
+                                    <option value="Comida">🍔 Comida</option>
+                                    <option value="Nómina">👷 Nómina/Pagos</option>
+                                    <option value="Mantenimiento">🔧 Mantenimiento</option>
+                                    <option value="Insumos">📦 Insumos (Tapas/Sellos)</option>
+                                    <option value="Servicios">💡 Servicios (Luz/Net)</option>
+                                    <option value="Otros">📝 Otros</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="input-row">
                             <div class="flex-2">
-                                <label for="gastoDesc">Descripción</label>
-                                <input type="text" id="gastoDesc" placeholder="Ej: Combustible, Comida...">
+                                <label for="gastoDesc">Detalle (Opcional)</label>
+                                <input type="text" id="gastoDesc" placeholder="Ej: Placa camión, Cena juan...">
                             </div>
                         </div>
                         <button class="btn btn-warning full-width" id="btnGasto">
@@ -391,11 +603,26 @@
                                 <i class="bi bi-file-earmark-pdf"></i>
                             </button>
                         </div>
+                        <!-- New Debt Manager Button -->
+                        <button onclick="toggleDebtsModal()" class="btn full-width"
+                            style="margin-top:10px; background:rgba(231, 29, 54, 0.1); color:#e71d36; border:1px solid #e71d36; font-weight:600;">
+                            <i class="bi bi-person-exclamation"></i> Gestionar Deudas
+                        </button>
                     </div>
                 </div>
 
-                <div class="report-grid">
-                    <!-- Financial Summary -->
+                <!-- Expenses Chart Section (New) -->
+                <div class="section-card" style="margin-top:20px;">
+                    <h3><i class="bi bi-pie-chart"></i> Desglose de Gastos</h3>
+                    <div style="height:300px; position:relative;">
+                        <canvas id="gastosChart"></canvas>
+                    </div>
+                    <div id="gastosLegend"
+                        style="margin-top:15px; display:flex; flex-wrap:wrap; gap:10px; justify-content:center;"></div>
+                </div>
+
+                <div class="section-card" style="margin-top:20px;">
+                    <h3><i class="bi bi-table"></i> Resumen del Período</h3>
                     <div class="summary-card">
                         <div class="section-card">
                             <h3>Rentabilidad Neta</h3>
@@ -434,20 +661,25 @@
                             </div>
                         </div>
 
-                        <div class="section-card">
-                            <h3>Ranking Empleados</h3>
-                            <div class="table-responsive">
-                                <table class="modern-table">
-                                    <thead>
-                                        <tr>
-                                            <th>#</th>
-                                            <th>Nombre</th>
-                                            <th>Cant.</th>
-                                            <th>Total</th>
+                        <!-- Top Clients Table -->
+                        <div class="section-card" style="margin-top:20px;">
+                            <h3>🏆 Mejores Clientes</h3>
+                            <div class="table-container" style="max-height: 300px; overflow-y: auto;">
+                                <table style="width:100%; border-collapse: collapse; font-size:14px;">
+                                    <thead style="position:sticky; top:0; background:var(--bg-dark); z-index:1;">
+                                        <tr style="text-align:left; border-bottom:1px solid var(--border);">
+                                            <th style="padding:10px;">Cliente</th>
+                                            <th style="padding:10px; text-align:right;">Comprados</th>
+                                            <th style="padding:10px; text-align:right;">Stock</th>
+                                            <th style="padding:10px; text-align:right;">Total ($)</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="employeeRankingTable">
-                                        <!-- JS populated -->
+                                    <tbody id="topClientsTable">
+                                        <tr>
+                                            <td colspan="4"
+                                                style="text-align:center; padding:15px; color:var(--text-muted);">
+                                                Cargando...</td>
+                                        </tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -460,33 +692,47 @@
             <div id="view-historial" class="view">
                 <div class="section-card">
                     <div class="card-header">
-                        <h3><i class="bi bi-clock-history"></i> Historial de Movimientos</h3>
-                        <div style="display:flex; gap:10px; align-items:center;">
-                            <input type="date" id="historyDateInput" class="form-control"
-                                style="width:auto; padding: 4px 8px; height: 38px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-main);">
-                            <select id="historyTypeFilter" class="form-select"
-                                style="width:auto; padding: 4px 8px; height: 38px; background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text-main); border-radius: 6px;">
-                                <option value="">Todo</option>
-                                <option value="Local">Local</option>
-                                <option value="Delivery">Delivery</option>
-                                <option value="Camión">Camión</option>
-                                <option value="Gasto">Gastos</option>
-                                <option value="Otros">Otros</option>
-                            </select>
+                        <h3><i class="bi bi-clock-history"></i> Historial de Transacciones</h3>
+                        <div class="header-controls" style="display:flex; gap:10px; align-items:center;">
+                            <div class="filter-group">
+                                <label for="historyTypeFilter"
+                                    style="margin-right:5px; font-size:14px; color:var(--text-muted)">Tipo:</label>
+                                <select id="historyTypeFilter"
+                                    style="background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--text-main); padding:4px 8px; border-radius:6px;">
+                                    <option value="todos">Todos</option>
+                                    <option value="Local">Local</option>
+                                    <option value="Delivery">Delivery</option>
+                                    <option value="Camión">Camión</option>
+                                    <option value="Gasto">Gasto</option>
+                                    <option value="Otros">Otros</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="historyDateFilter"
+                                    style="margin-right:5px; font-size:14px; color:var(--text-muted)">Fecha:</label>
+                                <select id="historyDateFilter"
+                                    style="background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--text-main); padding:4px 8px; border-radius:6px;">
+                                    <option value="hoy">Hoy</option>
+                                    <option value="ayer">Ayer</option>
+                                    <option value="semana">Esta Semana</option>
+                                    <option value="mes">Este Mes</option>
+                                    <option value="todo">Todo</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
-                    <div class="table-responsive">
-                        <table class="modern-table">
+
+                    <div class="table-container">
+                        <table id="tablaRegistros" class="data-table">
                             <thead>
                                 <tr>
-                                    <th>Fecha</th>
                                     <th>Hora</th>
                                     <th>Tipo</th>
                                     <th>Detalle</th>
-                                    <th class="text-right">Cant.</th>
-                                    <th class="text-right">Precio</th>
-                                    <th class="text-right">Total</th>
-                                    <th>Acciones</th>
+                                    <th>Cant.</th>
+                                    <th>Precio</th>
+                                    <th>Total</th>
+                                    <th>Acción</th>
                                 </tr>
                             </thead>
                             <tbody id="historyTableBody">
@@ -497,11 +743,211 @@
                 </div>
             </div>
 
+            <!-- VIEW: PRODUCCION -->
+            <div id="view-produccion" class="view">
+                <div class="section-card">
+                    <div class="card-header">
+                        <h3><i class="bi bi-speedometer2"></i> Producción</h3>
+                        <div class="header-controls">
+                            <!-- Total Month Display (Simplified) -->
+                            <input type="text" id="totalProduccionMes" readonly value="0"
+                                style="width:100px; background:rgba(0,194,255,0.1); border:1px solid var(--primary); color:var(--primary); font-weight:bold; text-align:center; height:38px; border-radius:8px; font-size:16px;">
+                        </div>
+                    </div>
+
+                    <div class="quick-actions">
+                        <div class="input-row">
+                            <div class="flex-1">
+                                <label for="prodMedidorAyer" style="color:var(--text-muted)">Medidor Ayer</label>
+                                <input type="number" id="prodMedidorAyer" placeholder="000000"
+                                    style="border-left: 3px solid #ff9f43;">
+                            </div>
+                            <div class="flex-1">
+                                <label for="prodMedidorHoy" style="color:var(--text-muted)">Medidor Hoy</label>
+                                <input type="number" id="prodMedidorHoy" placeholder="000000"
+                                    style="border-left: 3px solid #00c2ff;">
+                            </div>
+                        </div>
+
+                        <!-- Live Calculation Display -->
+                        <div
+                            style="background:rgba(0, 194, 255, 0.1); border-radius:12px; padding:15px; margin:20px 0; display:flex; justify-content:space-around; align-items:center;">
+                            <div style="text-align:center">
+                                <span
+                                    style="display:block; font-size:12px; color:var(--text-muted); margin-bottom:4px;">Diferencia</span>
+                                <span id="calcGalones"
+                                    style="font-size:24px; font-weight:bold; color:var(--primary);">0</span>
+                            </div>
+                            <div style="height:40px; width:1px; background:var(--border);"></div>
+                            <div style="text-align:center">
+                                <span
+                                    style="display:block; font-size:12px; color:var(--text-muted); margin-bottom:4px;">Botellones</span>
+                                <span id="calcBotellones"
+                                    style="font-size:24px; font-weight:bold; color:var(--success);">0</span>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary full-width" id="btnGuardarProduccion">
+                            <i class="bi bi-save"></i> Guardar Registro
+                        </button>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <div class="card-header">
+                        <h3>Historial</h3>
+                        <!-- Month Filter Moved Here -->
+                        <input type="month" id="prodMesFilter"
+                            style="background:var(--bg-dark); border:1px solid var(--border); color:white; padding:5px 10px; border-radius:6px; font-size:14px;">
+                    </div>
+
+                    <div class="table-container">
+                        <table class="data-table" style="border-collapse: separate; border-spacing: 0 8px;">
+                            <thead>
+                                <tr>
+                                    <th style="padding-left:15px;">Fecha</th>
+                                    <th style="text-align:center">Ayer</th>
+                                    <th style="text-align:center">Hoy</th>
+                                    <th style="text-align:center">Gal.</th>
+                                    <th style="text-align:center">Bot.</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="produccionTableBody">
+                                <!-- JS populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
         </main>
     </div>
 
-    <!-- Scripts -->
-    <script src="script.js?v=58"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <!-- MODAL CLIENTES -->
+    <div id="modalClientes" class="modal-overlay" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>👥 Directorio de Clientes</h3>
+                <button onclick="toggleClientesModal()" class="btn-close"><i class="bi bi-x-lg"></i></button>
+            </div>
+
+            <div class="modal-body"
+                style="padding:0; display:flex; flex-direction:column; height:100%; overflow:hidden;">
+                <!-- Sticky Header Container -->
+                <div
+                    style="padding:15px; background:var(--bg-dark); position:sticky; top:0; z-index:10; border-bottom:1px solid var(--border);">
+                    <!-- Add Client Form -->
+                    <div class="add-client-form"
+                        style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px; margin-bottom:15px; border:1px solid var(--border);">
+                        <h4 id="formClientTitle"
+                            style="margin-bottom:12px; font-size:14px; color:var(--text-muted); text-transform:uppercase;">
+                            Nuevo Cliente</h4>
+                        <input type="hidden" id="editClientId"> <!-- Hidden ID for editing -->
+                        <input type="hidden" id="newClientLat">
+                        <input type="hidden" id="newClientLng">
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+                            <input type="text" id="newClientName" placeholder="Nombre completo">
+                            <input type="text" id="newClientPhone" placeholder="Teléfono">
+                        </div>
+                        <div style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:10px; margin-bottom:10px;">
+                            <input type="text" id="newClientAddress" placeholder="Dirección / Sector">
+                            <input type="number" id="newClientStock" placeholder="Stock"
+                                title="Cantidad de botellones que posee">
+                            <input type="number" id="newClientPrice" placeholder="Precio (RD$)" value="30">
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                            <button id="btnSaveClient" onclick="guardarClienteNuevo()"
+                                class="btn btn-primary full-width">
+                                <i class="bi bi-plus-circle"></i> Agregar Cliente
+                            </button>
+                        </div>
+                        <button class="btn btn-outline full-width" id="btnCancelEdit"
+                            style="display:none; margin-top:10px;" onclick="cancelarEdicionCliente()">Cancelar</button>
+                    </div>
+
+                    <!-- Client List Search (Sticky) -->
+                    <div class="search-bar" style="margin-bottom:0;">
+                        <input type="text" id="busquedaCliente" placeholder="Buscar cliente..."
+                            onkeyup="filtrarClientes()" style="padding-left:15px;"> <!-- Removed Icon padding -->
+                    </div>
+                </div>
+
+                <!-- Scrollable List -->
+                <div id="listaClientesContainer" class="client-list" style="flex:1; overflow-y:auto; padding:15px;">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DEUDAS -->
+    <div id="modalDebts" class="modal-overlay" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="bi bi-exclamation-circle"></i> Cuentas por Cobrar</h3>
+                <button onclick="toggleDebtsModal()" class="btn-close"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body">
+                <div id="pendingDebtsList" style="max-height:60vh; overflow-y:auto;">
+                    <!-- Loading... -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <button id="btnCancelEdit" onclick="cancelarEdicionCliente()" class="btn btn-outline" style="display:none;">
+        Cancelar
+    </button>
+    </div>
+    </div>
+
+    <!-- Clients List -->
+    <div class="table-container">
+        <table class="data-table" style="font-size:13px;">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Precio</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody id="listaClientesBody">
+                <!-- Populated by JS -->
+            </tbody>
+        </table>
+    </div>
+    </div>
+    </div>
+    </div>
+
+    <!-- MODAL HISTORIAL CLIENTE (NUEVO) -->
+    <div id="modalHistorialCliente" class="modal-overlay" style="display:none; z-index: 10001;">
+        <div class="modal-content" style="max-height: 85vh;">
+            <div class="modal-header">
+                <h3 id="historialClienteNombre">📜 Historial</h3>
+                <button onclick="document.getElementById('modalHistorialCliente').style.display='none'"
+                    class="btn-close"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body" style="padding:0; overflow-y:auto; background:var(--bg-dark);">
+                <div id="historialClienteList" style="padding:15px;">
+                    <!-- JS populated -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Script -->
+    <!-- Modules -->
+    <script src="js/utils.js"></script>
+    <script src="js/globals.js"></script>
+    <script src="js/clients.js"></script>
+    <script src="js/reports.js"></script>
+    <script src="script.js?v=132"></script>
 </body>
 
 </html>

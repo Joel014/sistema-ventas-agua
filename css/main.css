@@ -40,9 +40,10 @@ body {
 body {
     font-family: var(--font-main);
     background-color: var(--bg-dark);
-    background-image:
-        radial-gradient(at 0% 0%, rgba(0, 194, 255, 0.25) 0px, transparent 50%),
-        radial-gradient(at 100% 0%, rgba(179, 236, 255, 0.15) 0px, transparent 50%);
+    /* Subtle Logo-Themed Gradient (Dark Navy to Dark Cyan) */
+    background: linear-gradient(135deg, #011627 0%, #00263E 100%);
+    background-attachment: fixed;
+    background-size: cover;
     color: var(--text-main);
 }
 
@@ -72,7 +73,7 @@ body {
     height: 100vh;
     width: 100%;
     overflow: hidden;
-    background: var(--bg-dark);
+    background: transparent;
 }
 
 .sidebar {
@@ -311,8 +312,61 @@ body {
     margin-bottom: 24px;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
+    margin-bottom: 24px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     box-shadow: var(--shadow);
 }
+
+/* Full Width Tables for History & Production (Desktop & Mobile) */
+#view-historial .section-card,
+#view-produccion .section-card {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+#view-historial .section-card .card-header,
+#view-produccion .section-card .card-header,
+#view-produccion .section-card .quick-actions {
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+#tablaRegistros,
+#tablaProduccion {
+    width: 100%;
+}
+
+.table-container {
+    width: 100%;
+    margin: 0;
+}
+
+/* Full Width Tables for History & Production (Desktop & Mobile) */
+#view-historial .section-card,
+#view-produccion .section-card {
+    padding-left: 0;
+    padding-right: 0;
+}
+
+#view-historial .section-card .card-header,
+#view-produccion .section-card .card-header,
+#view-produccion .section-card .quick-actions {
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+#tablaRegistros,
+#tablaProduccion {
+    width: 100%;
+}
+
+.table-container {
+    width: 100%;
+    margin: 0;
+}
+
+/* Specific adjustment for chart cards */
 
 .section-card h3 {
     font-size: 18px;
@@ -605,6 +659,34 @@ label {
     font-size: 14px;
 }
 
+/* Ensure our specific tables are full width */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+    padding: 16px;
+    /* Matched padding for alignment */
+    text-align: left;
+    /* Ensure left align by default */
+    border-bottom: 1px solid var(--border);
+}
+
+.data-table th {
+    color: var(--text-muted);
+    font-weight: 500;
+    text-align: left;
+    /* Explicitly enforce left align on headers to match data */
+}
+
+/* Force right align only on specific columns via helper class */
+.text-right {
+    text-align: right !important;
+    /* Force override */
+}
+
 .text-right {
     text-align: right;
 }
@@ -619,17 +701,59 @@ label {
     display: block;
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
+@keyframes pulse-dot {
+    0% {
+        transform: scale(0.8);
+        opacity: 0.5;
     }
 
-    to {
+    50% {
+        transform: scale(1.2);
         opacity: 1;
-        transform: translateY(0);
+    }
+
+    100% {
+        transform: scale(0.8);
+        opacity: 0.5;
     }
 }
+
+/* Pull to Refresh Indicator */
+#ptr-loader {
+    position: fixed;
+    top: -60px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 40px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    /* transition: top handled by JS for drag, CSS for release */
+}
+
+#ptr-loader .bi {
+    color: var(--primary);
+    font-size: 20px;
+    transition: transform 0.2s;
+}
+
+#ptr-loader.refreshing .bi {
+    animation: spin-ptr 1s linear infinite;
+}
+
+@keyframes spin-ptr {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+
 
 /* Mobile Actions */
 .mobile-actions {
@@ -638,11 +762,158 @@ label {
 }
 
 /* Mobile Responsive */
+
+/* Modern Radio Cards (Global) */
+.radio-card {
+    display: block;
+    position: relative;
+    cursor: pointer;
+    margin: 0;
+}
+
+.radio-card input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.radio-card input:checked~.radio-label {
+    background: rgba(37, 99, 235, 0.15);
+    /* Primary color low opacity */
+    border-color: var(--primary);
+    color: var(--primary);
+    box-shadow: 0 0 0 1px var(--primary);
+    /* Simulate thick border */
+}
+
+.radio-card:hover .radio-label {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.radio-label i {
+    font-size: 18px;
+}
+
 @media (max-width: 768px) {
     .app-container {
         flex-direction: column;
     }
 
+    /* Responsive Table for Registros (History) */
+    #tablaRegistros thead {
+        display: none;
+    }
+
+    #tablaRegistros tbody,
+    #tablaRegistros tr,
+    #tablaRegistros td {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    #tablaRegistros tr {
+        margin-bottom: 15px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.03);
+        padding: 10px;
+        margin-left: 10px;
+        margin-right: 10px;
+        width: auto;
+        /* Allow full width within its container */
+    }
+
+    #tablaRegistros td {
+        text-align: right;
+        padding: 8px 10px;
+        padding-left: 40%;
+        /* Make space for the label */
+        position: relative;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    #tablaRegistros td:last-child {
+        border-bottom: none;
+    }
+
+    #tablaRegistros td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 10px;
+        top: 8px;
+        width: 40%;
+        white-space: nowrap;
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    /* Responsive Table for Produccion (Stacked Cards) */
+    /* Target generic data-table inside produccion view OR specific ID */
+    #view-produccion .data-table,
+    #view-produccion .data-table tbody,
+    #view-produccion .data-table tr,
+    #view-produccion .data-table td {
+        display: block !important;
+        width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    #view-produccion .data-table thead {
+        display: none !important;
+    }
+
+    #view-produccion .data-table tr {
+        margin-bottom: 15px !important;
+        border: 1px solid var(--border);
+        border-radius: 12px !important;
+        background: rgba(255, 255, 255, 0.03) !important;
+        padding: 10px !important;
+        margin-left: 10px !important;
+        margin-right: 10px !important;
+        width: auto !important;
+    }
+
+    #view-produccion .data-table td {
+        text-align: right !important;
+        padding: 8px 10px !important;
+        padding-left: 40% !important;
+        position: relative !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    #view-produccion .data-table td:last-child {
+        border-bottom: none;
+    }
+
+    #view-produccion .data-table td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 10px;
+        top: 8px;
+        width: 40%;
+        white-space: nowrap;
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    /* Full Width History Card Fix */
     /* Bottom Navigation */
     .sidebar {
         position: fixed;
@@ -663,6 +934,7 @@ label {
         padding-bottom: env(safe-area-inset-bottom);
         /* Handle iPhone X notch */
     }
+
 
     .app-title {
         display: none;
@@ -966,10 +1238,114 @@ label {
     }
 
     .table-responsive {
-        margin: 0 -16px;
-        /* Negative margin to pull table to edges */
-        width: calc(100% + 32px);
-        padding: 0 16px;
-        /* Padding to align content start */
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin-bottom: 10px;
     }
+}
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    z-index: 9999;
+    /* Extremely high z-index */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    animation: fadeIn 0.2s ease;
+}
+
+.modal-content {
+    background: var(--bg-card);
+    width: 100%;
+    max-width: 600px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    max-height: 85vh;
+    /* Improved mobile height */
+    overflow: hidden;
+    /* Ensure rounded corners */
+}
+
+.modal-header {
+    padding: 13px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    /* Keep header fixed */
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.btn-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.modal-body {
+    padding: 20px;
+    overflow-y: auto;
+    /* Enable scrolling for body */
+    flex: 1;
+    /* Take remaining space */
+}
+
+/* Suggestions List */
+#suggestionsList {
+    position: absolute;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 100%;
+    max-height: 150px;
+    overflow-y: auto;
+    z-index: 10000;
+    /* Higher than everything else */
+    top: 100%;
+    left: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    display: none;
+    /* Hidden by default */
+}
+
+.suggestion-item {
+    padding: 10px 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-muted);
+    transition: background 0.2s;
+}
+
+.suggestion-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-main);
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+
+/* SWEETALERT2 Z-INDEX FIX */
+.swal2-container {
+    z-index: 20000 !important;
 }

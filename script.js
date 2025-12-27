@@ -1,20 +1,5 @@
-// --- 🔥 CONFIGURACIÓN FIREBASE ---
-const firebaseConfig = {
-  apiKey: "AIzaSyCojK8pGgNKb9AhUHo50rgYiW769t_ljmk",
-  authDomain: "sistemaventasagua.firebaseapp.com",
-  projectId: "sistemaventasagua",
-  storageBucket: "sistemaventasagua.firebasestorage.app",
-  messagingSenderId: "699153205855",
-  appId: "1:699153205855:web:33455493ba6e40b4d029ea"
-};
+// Firebase Config & Init moved to js/globals.js
 
-// Inicializar Firebase
-firebase.initializeApp(firebaseConfig);
-
-// Inicializar Firestore
-const db = firebase.firestore();
-const ventasRef = db.collection("ventas");
-const empleadosRef = db.collection("empleados");
 
 // --- 🔹 FUNCIÓN PARA GUARDAR VENTA ---
 window.guardarVenta = function () {
@@ -42,33 +27,16 @@ window.guardarVenta = function () {
 
 // Encapsular todo para evitar fugas globales
 (function () {
-  let ventasDelDia = [];
-  let contadorVentas = 0;
-  let empleados = [];
+  // Globals moved to js/globals.js
+  // Accessing window variables directly now
 
-  // Chart Instances
-  let myPieChart = null;
-  let myTrendChart = null;
 
   const PRECIO_LOCAL = 25;
-  const PRECIO_CAMION = 25;
+  const PRECIO_CAMION = 30; // Updated to 30 as requested
   const PRECIO_DELIVERY = 35;
 
-  // ---------- UTILIDADES ----------
-  function formatCurrency(n) {
-    const num = Number(n) || 0;
-    const opts = { minimumFractionDigits: (Math.round(num) === num ? 0 : 2), maximumFractionDigits: 2 };
-    return '$' + num.toLocaleString('es-ES', opts);
-  }
+  // Utils moved to js/utils.js
 
-  function escapeCSV(value) {
-    if (value === null || value === undefined) return '';
-    const str = String(value);
-    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-      return '"' + str.replace(/"/g, '""') + '"';
-    }
-    return str;
-  }
 
   function guardarEnStorage() {
     if (typeof Storage === 'undefined') return;
@@ -165,6 +133,39 @@ window.guardarVenta = function () {
       .catch(err => { console.error(err); alert("Error al eliminar"); });
   };
 
+  function calculateDailyChange(currentValue, type) {
+    if (!allRecentVentas) return null;
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toDateString();
+
+    // Filter yesterday's sales
+    const yesterSales = allRecentVentas.filter(v => {
+      const d = getFechaFromId(v);
+      return d.toDateString() === yesterdayStr;
+    });
+
+    // Calculate total for yesterday based on type
+    let yesterTotal = 0;
+    yesterSales.forEach(v => {
+      if (type === 'money') yesterTotal += (Number(v.total) || 0);
+      if (type === 'bottles') yesterTotal += (Number(v.totalBotellones) || Number(v.cantidad) || 0);
+    });
+
+    if (yesterTotal === 0) return { percent: 0, show: false, val: 0 };
+
+    const diff = currentValue - yesterTotal;
+    const percent = ((diff / yesterTotal) * 100).toFixed(1);
+
+    return {
+      percent: percent,
+      show: true,
+      val: yesterTotal,
+      positive: diff >= 0
+    };
+  }
+
   function actualizarEmpleadosVisual() {
     const container = document.getElementById('repartidoresList');
     if (!container) return;
@@ -231,7 +232,40 @@ window.guardarVenta = function () {
     // Voy a dejarla vacía para evitar crashes.
   };
 
-  // Escuchar cambios para recalcular - No necesario si no mostramos totales live
+  window.agregarGasto = function () {
+    const descInput = document.getElementById('gastoDesc');
+    const montoInput = document.getElementById('gastoMonto');
+    const descripcion = descInput.value.trim();
+    const monto = parseFloat(montoInput.value) || 0;
+
+    if (!descripcion || monto <= 0) {
+      alert("Ingrese descripción y monto válido");
+      return;
+    }
+
+    const nuevoGasto = {
+      tipo: 'Gasto',
+      descripcion: descripcion,
+      detalles: descripcion, // Fallback for reports
+      cantidad: 1, // Dummy for reports
+      precioUnitario: monto,
+      total: -Math.abs(monto), // Negative for easy summing
+      fecha: new Date().toISOString(),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    ventasRef.add(nuevoGasto)
+      .then(() => {
+        descInput.value = '';
+        montoInput.value = '';
+        mostrarConfirmacion('gastos', 'Gasto registrado correctamente');
+      })
+      .catch(err => {
+        console.error("Error al guardar gasto:", err);
+        alert("No se pudo guardar el gasto");
+      });
+  };
+
   function configurarEventListeners() {
     // Bind Buttons
     console.log("Configurando Event Listeners...");
@@ -252,9 +286,16 @@ window.guardarVenta = function () {
 
     const btnOtro = document.getElementById('btnOtro');
     if (btnOtro) btnOtro.addEventListener('click', guardarOtroServicio);
+    setupNavigation();
+    setupProduccionListeners(); // <--- NUEVO
+    cargarUltimaLectura();      // <--- NUEVO
+
+    // Listeners globales con seguridad
+    const btnSubmit = document.getElementById('btnSubmit');
+    if (btnSubmit) btnSubmit.addEventListener('click', agregarVenta);
 
     const btnGasto = document.getElementById('btnGasto');
-    if (btnGasto) btnGasto.addEventListener('click', guardarGasto);
+    if (btnGasto) btnGasto.addEventListener('click', agregarGasto);
 
     const btnAddRepartidor = document.getElementById('btnAddRepartidor');
     if (btnAddRepartidor) btnAddRepartidor.addEventListener('click', agregarEmpleado);
@@ -371,26 +412,61 @@ window.guardarVenta = function () {
       }
 
       // Obtener descripción (modo + comentario)
+      // Obtener descripción (modo + comentario)
       const mode = document.querySelector('input[name="camionMode"]:checked');
-      const modeVal = mode ? mode.value : '';
+      if (!mode) {
+        alert('⚠️ Por favor selecciona una MODALIDAD (Solo o Ayudante)');
+        return;
+      }
+      const modeVal = mode.value;
       const comment = document.getElementById('commentCamion').value.trim();
-      const descripcion = (modeVal ? (modeVal === 'solo' ? 'Solo' : 'Ayudante') : '') + (comment ? ` - ${comment}` : '');
+      const descripcion = (modeVal === 'solo' ? 'Solo' : 'Ayudante') + (comment ? ` - ${comment}` : '');
 
       const total = cantidad * PRECIO_CAMION;
+      // CHECK CLIENT SELECTOR
+      const clientSelector = document.getElementById('clienteCamionSelector');
+      let finalPrice = PRECIO_CAMION; // Default 30
+      let clientDetails = '';
+
+      if (clientSelector && clientSelector.value) {
+        // A specific client is selected
+        const selectedOption = clientSelector.options[clientSelector.selectedIndex];
+        const customPrice = parseFloat(selectedOption.getAttribute('data-precio'));
+        if (!isNaN(customPrice)) {
+          finalPrice = customPrice;
+        }
+
+        // Find client info for details
+        const clientData = listaClientes.find(c => c.id === clientSelector.value);
+        if (clientData) {
+          clientDetails = ` | Cliente: ${clientData.nombre} (${clientData.direccion || ''})`;
+        }
+      }
+
+      const totalCalculado = cantidad * finalPrice;
+
+      const cantidadVacios = parseInt(document.getElementById('qtyCamionVacios').value) || 0;
+
       const venta = {
         timestamp: Date.now(),
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         hora,
         tipo: 'Camión',
-        detalles: descripcion || '-',
+        detalles: (descripcion || '-') + clientDetails,
         cantidad,
-        precioUnitario: `${formatCurrency(PRECIO_CAMION)}`,
-        total
+        botellonesVacios: cantidadVacios, // Save empty bottles
+        precioUnitario: `${formatCurrency(finalPrice)}`, // Show the price used
+        total: totalCalculado,
+        // Reporting Fields
+        clienteId: (clientSelector && clientSelector.value) ? clientSelector.value : null,
+        clienteNombre: (clientSelector && clientSelector.value && clientSelector.options[clientSelector.selectedIndex]) ? clientSelector.options[clientSelector.selectedIndex].text.split(' - ')[0] : 'Casual',
+        estadoPago: 'pagado' // Default for manual POS sales
       };
 
       ventasRef.add(venta)
         .then(() => {
           document.getElementById('qtyCamion').value = '';
+          document.getElementById('qtyCamionVacios').value = ''; // Reset Empty bottles
           document.getElementById('commentCamion').value = '';
           if (mode) mode.checked = false;
           mostrarConfirmacion('💾 Venta de camión guardada en nube', '#f39c12');
@@ -401,12 +477,22 @@ window.guardarVenta = function () {
 
     // empleado-<id>
     if (campo.startsWith('empleado-')) {
-      const empId = parseInt(campo.split('-')[1]);
-      const input = document.querySelector(`.empleado-cantidad[data-emp-id='${empId}']`);
+      const empId = campo.split('-')[1]; // Keep as string first to match ID logic
+
+      // Try finding by ID first (most robust)
+      let input = document.getElementById(`cant-${empId}`);
+
+      // Fallback to data attribute if ID not found
       if (!input) {
+        input = document.querySelector(`.empleado-cantidad[data-emp-id='${empId}']`);
+      }
+
+      if (!input) {
+        console.error(`Input not found for ID: cant-${empId} or data-emp-id=${empId}`);
         alert('No se encontró la entrada del repartidor');
         return;
       }
+
       const cantidad = parseInt(input.value) || 0;
       if (cantidad <= 0) {
         alert('Ingresa una cantidad mayor a 0 para este repartidor');
@@ -439,18 +525,26 @@ window.guardarVenta = function () {
   // ---------- GASTOS ----------
   window.guardarGasto = function () {
     const monto = parseFloat(document.getElementById('gastoMonto').value) || 0;
+    const categoria = document.getElementById('gastoCategoria').value;
     const nota = document.getElementById('gastoDesc').value.trim();
-    if (monto <= 0) { alert('⚠️ Por favor ingresa un monto válido para el gasto'); document.getElementById('gastoMonto').focus(); return; }
-    if (!nota) { alert('⚠️ Por favor describe el gasto'); document.getElementById('gastoDesc').focus(); return; }
+
+    if (monto <= 0) { alert('⚠️ Por favor ingresa un monto válido'); document.getElementById('gastoMonto').focus(); return; }
+    if (!categoria) { alert('⚠️ Selecciona una CATEGORÍA para el gasto'); document.getElementById('gastoCategoria').focus(); return; }
+
+    // Construct description: "Combustible - Gasolina Camion" or just "Combustible"
+    const descripcionFinal = categoria + (nota ? ` - ${nota}` : '');
+
     const ahora = new Date();
     const hora = ahora.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
     const nuevoGasto = {
       timestamp: Date.now(),
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       hora,
       tipo: 'Gasto',
-      descripcion: nota,
-      detalles: nota,
+      categoria: categoria, // Structured Field
+      descripcion: descripcionFinal,
+      detalles: descripcionFinal,
       cantidad: '-',
       precioUnitario: '-',
       total: -Math.abs(monto)
@@ -459,12 +553,20 @@ window.guardarVenta = function () {
     ventasRef.add(nuevoGasto)
       .then(() => {
         limpiarGastos();
-        mostrarConfirmacion('💾 Gasto guardado correctamente en nube', '#f39c12');
+        mostrarConfirmacion('💾 Gasto registrado correctamente', '#f39c12');
       })
       .catch(err => { console.error(err); alert("Error al guardar gasto"); });
   };
 
-  function limpiarGastos() { document.getElementById('gastoMonto').value = ''; document.getElementById('gastoDesc').value = ''; }
+  function limpiarGastos() {
+    document.getElementById('gastoMonto').value = '';
+    document.getElementById('gastoDesc').value = '';
+    const catSelect = document.getElementById('gastoCategoria');
+    if (catSelect) {
+      catSelect.value = ""; // Try resetting value
+      catSelect.selectedIndex = 0; // Force index
+    }
+  }
 
   // ---------- OTROS SERVICIOS ----------
   window.guardarOtroServicio = function () {
@@ -502,17 +604,8 @@ window.guardarVenta = function () {
 
   // ---------- TABLA ----------
   function actualizarTablaRegistros() {
-    // Attempt to update Historial Table
-    // FIX: ID was mismatched. HTML has 'historyTableBody'.
-    const tbodyHistorial = document.getElementById('historyTableBody') || document.getElementById('tablaRegistros');
-
-    if (tbodyHistorial) {
-      if (ventasDelDia.length === 0) {
-        tbodyHistorial.innerHTML = '<tr><td colspan="7" style="color:#888; font-style:italic; text-align:center; padding:20px;">No hay ventas registradas hoy</td></tr>';
-      } else {
-        renderTableRows(tbodyHistorial, ventasDelDia);
-      }
-    }
+    // Use the filter logic to render table (defaults to showing all history)
+    filtrarHistorial();
   }
 
   function renderTableRows(tbody, data) {
@@ -527,7 +620,34 @@ window.guardarVenta = function () {
       else if (tipoLc.includes('gas')) tipoClass = 'gasto';
       else if (tipoLc.includes('otr')) tipoClass = 'otros';
 
-      const detalles = registro.detallesEntregas && registro.detallesEntregas.trim().length > 0 ? registro.detallesEntregas : registro.detalles || '-';
+      let detalles = registro.detallesEntregas && registro.detallesEntregas.trim().length > 0 ? registro.detallesEntregas : registro.detalles || '-';
+
+      // Simplify description for Route sales (Camión)
+      if (registro.tipo === 'Camión' && detalles.startsWith('Ruta:')) {
+        // Check for format: Ruta: [Name] - [Address] ([Status])
+        // We want: [Name] ([Status])
+        // Or just regex extract the name and status.
+        try {
+          const parts = detalles.split(' - ');
+          if (parts.length >= 1) {
+            let namePart = parts[0].replace('Ruta: ', '');
+            // Status is usually at the end in parens or appended
+            // Previous save format: Ruta: Name - Address (Paid/Pending)
+            // Let's try to find the parens at the end
+            const match = detalles.match(/\((Pagado|Pendiente)\)$/);
+            const status = match ? match[0] : ''; // (Pagado)
+
+            // If we have address part, it might complicate split.
+            // Let's rely on the previous save format which was: `Ruta: ${item.nombre} - ${item.direccion} (${item.pagado ? 'Pagado' : 'Pendiente'})`
+            // Actually I just changed it to include status.
+
+            // Heuristic: Name is between "Ruta: " and " - "
+            // Status is in parens at end.
+
+            detalles = `${namePart} <span style="font-size:0.85em; opacity:0.8;">${status}</span>`;
+          }
+        } catch (e) { }
+      }
       const cantidad = registro.totalBotellones || registro.cantidad || '-';
       const total = Number(registro.total) || 0;
       const color = total < 0 ? '#e74c3c' : '#27ae60';
@@ -545,19 +665,39 @@ window.guardarVenta = function () {
       } catch (e) { fechaStr = 'Hoy'; }
 
       return `
-        <tr class="venta-${tipoClass}">
-            <td>${fechaStr}</td> <!-- Col 1: Fecha -->
-            <td>${registro.hora || '-'}</td> <!-- Col 2: Hora -->
-            <td><span class="service-type ${tipoClass}">${registro.tipo || '-'}</span></td> <!-- Col 3: Tipo -->
-            <td style="font-size:.9em;">${detalles}</td> <!-- Col 4: Detalle -->
-            <td class="text-right">${cantidad}</td> <!-- Col 5: Cant -->
-            <td class="text-right">${precioUnit}</td> <!-- Col 6: Precio -->
-            <td class="text-right" style="font-weight:700; color:${color};">${textoTotal}</td> <!-- Col 7: Total -->
-            <td><button class="delete-btn" onclick="eliminarRegistro('${registro.id}')">🗑️</button></td> <!-- Col 8: Action -->
+        <tr class="venta-${tipoClass}" style="background:rgba(255,255,255,0.03); transition:transform 0.2s;">
+            <td data-label="Fecha" style="padding:16px; border-radius:12px 0 0 12px;">${fechaStr}</td>
+            <td data-label="Hora" style="padding:16px;">${registro.hora || '-'}</td>
+            <td data-label="Tipo" style="padding:16px;"><span class="service-type ${tipoClass}">${registro.tipo || '-'}</span></td>
+            <td data-label="Detalle" style="padding:16px; font-size:.95em; color:var(--text-main);">${detalles}</td>
+            <td data-label="Cant." style="padding:16px;" class="text-right">${cantidad}</td>
+            <td data-label="Precio" style="padding:16px;" class="text-right">${precioUnit}</td>
+            <td data-label="Total" style="padding:16px; border-radius:0 12px 12px 0;" class="text-right" style="font-weight:700; color:${color};">${textoTotal}</td>
+            <td data-label="Acción" style="padding:16px;"><button class="delete-btn" onclick="eliminarRegistro('${registro.id}')" style="background:none; border:none; color:var(--text-muted); cursor:pointer;"><i class="bi bi-trash"></i></button></td>
           </tr >
         `;
 
     }).join('');
+  }
+
+  // ---------- PRODUCCION TABLE ----------
+  function renderProductionTableRows(tbody, history) {
+    if (!history) return;
+    // Assuming the table header for production is: Fecha, Ayer, Hoy, Galones, Botellones, Acción
+    // The instruction implies ensuring the header is correct, but only provides tbody content.
+    // The data-label attributes are added    // Populate Table
+    tbody.innerHTML = history.map(h => `
+      <tr style="background:rgba(255,255,255,0.03);">
+        <td data-label="Fecha" style="padding-left:15px; border-left:3px solid var(--primary);">${new Date(h.fecha + 'T00:00:00').toLocaleDateString()}</td>
+        <td data-label="Ayer" style="text-align:center">${h.ayer}</td>
+        <td data-label="Hoy" style="text-align:center">${h.hoy}</td>
+        <td data-label="Galones" style="text-align:center; font-weight:bold; color:var(--primary);">${h.galones}</td>
+        <td data-label="Botellones" style="text-align:center; font-weight:bold; color:var(--success);">${h.botellones}</td>
+        <td data-label="Acción">
+           <button class="delete-btn" onclick="eliminarProduccion('${h.id}')" style="background:none; border:none; color:var(--text-muted); cursor:pointer;"><i class="bi bi-trash"></i></button>
+        </td>
+      </tr>
+    `).join('');
   }
 
   window.eliminarRegistro = function (id) {
@@ -580,147 +720,9 @@ window.guardarVenta = function () {
       .catch(err => console.error(err));
   };
 
-  // ---------- REPORTES ----------
-  function actualizarReportes(data = null) {
-    const dataSource = data || ventasDelDia;
+  // Old Reports Logic Removed (Now in js/reports.js)
 
-    // 1. Employee Ranking
-    const rankTable = document.getElementById('employeeRankingTable');
-    if (rankTable) {
-      // Aggregate delivery counts per employee
-      // We need to parse 'detalles' or check logic. For now, we only have 'empleadoId' in 'entregas'?
-      // The current storage logic for individual sales doesn't explicitly store employee ID in 'ventasDelDia' easy to parse.
-      // It stores "Repartidor: Name" in detalles, or similar.
-      // Let's iterate 'ventasDelDia' and look for type 'Delivery' and parse name.
 
-      const counts = {};
-      dataSource.forEach(v => {
-        if (v.tipo === 'Delivery') {
-          // Try to extract name. details might be "Repartidor: Juan - 5 botellones"
-          // Or if we saved it differently.
-          // In 'guardarVenta' (legacy) it pushed objects.
-          // In 'guardarIndividual' (current/fixed), we might need to improve how we store delivery data.
-          // For now, let's just group by 'detalles' if type is Delivery.
-          const name = v.detalles || 'Desconocido';
-          if (!counts[name]) counts[name] = { count: 0, total: 0 };
-          counts[name].count += (Number(v.cantidad) || 0);
-          counts[name].total += (Number(v.total) || 0);
-        }
-      });
-
-      const sorted = Object.entries(counts).sort((a, b) => b[1].count - a[1].count);
-
-      if (sorted.length === 0) {
-        rankTable.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Sin datos de delivery</td></tr>';
-      } else {
-        rankTable.innerHTML = sorted.map((item, index) => `
-                <tr>
-                    <td>${index + 1}</td>
-                    <td>${item[0]}</td>
-                    <td class="text-right">${item[1].count}</td>
-                    <td class="text-right">${formatCurrency(item[1].total)}</td>
-                </tr>
-            `).join('');
-      }
-    }
-
-    // 2. Charts
-    if (typeof Chart === 'undefined') return;
-
-    // Pie Chart (Distribution)
-    const ctxPie = document.getElementById('salesPieChart');
-    if (ctxPie) {
-      const aggr = { 'Local': 0, 'Camión': 0, 'Delivery': 0, 'Otros': 0 };
-      dataSource.forEach(v => {
-        if (v.tipo === 'Gasto') return;
-        const t = v.tipo || 'Otros';
-        if (aggr[t] !== undefined) aggr[t] += (Number(v.total) || 0);
-        else aggr['Otros'] += (Number(v.total) || 0);
-      });
-
-      const dataPie = {
-        labels: Object.keys(aggr),
-        datasets: [{
-          data: Object.values(aggr),
-          backgroundColor: ['#00d2d3', '#5f27cd', '#ff9f43', '#2e86de'],
-          borderWidth: 0
-        }]
-      };
-
-      if (myPieChart) myPieChart.destroy();
-      myPieChart = new Chart(ctxPie, {
-        type: 'doughnut',
-        data: dataPie,
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { position: 'right', labels: { color: '#ecf0f1' } } }
-        }
-      });
-    }
-
-    // Trend Chart (Hourly Sales)
-    const ctxTrend = document.getElementById('trendChart');
-    if (ctxTrend) {
-      // Group by Hour
-      const hours = {};
-      for (let i = 8; i <= 20; i++) hours[`${i}:00`] = 0; // Init 8am to 8pm
-
-      dataSource.forEach(v => {
-        if (v.tipo === 'Gasto') return;
-        // v.hora is like "10:30"
-        if (v.hora) {
-          const h = v.hora.split(':')[0] + ':00';
-          if (hours[h] !== undefined) hours[h] += (Number(v.total) || 0);
-        }
-      });
-
-      const dataTrend = {
-        labels: Object.keys(hours),
-        datasets: [{
-          label: 'Ventas (RD$)',
-          data: Object.values(hours),
-          borderColor: '#00d2d3',
-          backgroundColor: 'rgba(0, 210, 211, 0.1)',
-          fill: true,
-          tension: 0.4
-        }]
-      };
-
-      if (myTrendChart) myTrendChart.destroy();
-      myTrendChart = new Chart(ctxTrend, {
-        type: 'line',
-        data: dataTrend,
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#bdc3c7' } },
-            x: { grid: { display: false }, ticks: { color: '#bdc3c7' } }
-          },
-          plugins: { legend: { display: false } }
-        }
-      });
-    }
-
-    // 3. Stats Summary (Net Profit, etc.)
-    const totalVentas = dataSource.filter(v => v.tipo !== 'Gasto').reduce((acc, c) => acc + (Number(c.total) || 0), 0);
-    const totalGastos = dataSource.filter(v => v.tipo === 'Gasto').reduce((acc, c) => acc + Math.abs(Number(c.total) || 0), 0);
-    const profit = totalVentas - totalGastos;
-    const margin = totalVentas > 0 ? ((profit / totalVentas) * 100).toFixed(1) : 0;
-
-    const countVentas = dataSource.filter(v => v.tipo !== 'Gasto').length;
-    const avgTicket = countVentas > 0 ? (totalVentas / countVentas) : 0;
-
-    const elProfit = document.getElementById('reportNetProfit');
-    if (elProfit) elProfit.textContent = formatCurrency(profit);
-
-    const elMargin = document.getElementById('reportMargin');
-    if (elMargin) elMargin.textContent = `${margin}%`;
-
-    const elAvg = document.getElementById('reportAvgTicket');
-    if (elAvg) elAvg.textContent = formatCurrency(avgTicket);
-  }
 
   function actualizarTotalDiario() {
     let totalDinero = 0;
@@ -729,48 +731,32 @@ window.guardarVenta = function () {
     let totalCamion = 0;
     let totalBotellones = 0;
     let totalOtro = 0;
-
     let totalGastos = 0;
 
     if (ventasDelDia) {
       ventasDelDia.forEach(r => {
-        const total = Number(r.total) || 0;
-        totalDinero += (r.tipo === 'Gasto' ? -total : total);
+        const val = Number(r.total) || 0;
 
-        // Gastos (sumar el valor absoluto o el valor real si quieres mostrar cuanto se gastó)
+        // Sumar al total global (Gastos ya vienen negativos)
+        totalDinero += val;
+
         if (r.tipo === 'Gasto') {
-          totalGastos += Math.abs(Number(r.total) || 0); // Sumamos positivo para mostrar "Total Gastado: 500"
-        }
+          totalGastos += Math.abs(val);
+        } else {
+          // Si NO es Gasto, sumamos botellones/cantidades
+          // (Evita sumar cantidad de dummy gastos)
+          const qty = Number(r.cantidad) || 0;
+          totalBotellones += qty;
 
-        // Botellones
-        if (Number(r.cantidad)) {
-          totalBotellones += Number(r.cantidad);
-        }
-
-        // Local
-        if (r.tipo === 'Local') {
-          totalLocal += Number(r.cantidad) || 0;
-        }
-
-        // Delivery
-        if (r.tipo === 'Delivery') {
-          totalDelivery += Number(r.cantidad) || 0;
-        }
-
-        // Camión
-        if (r.tipo === 'Camión') {
-          totalCamion += Number(r.cantidad) || 0;
-        }
-
-        // Otro Servicio
-        if (r.tipo === 'Otros') {
-          // AHORA sumamos CANTIDAD, no dinero.
-          totalOtro += Number(r.cantidad) || 0;
+          if (r.tipo === 'Local') totalLocal += qty;
+          if (r.tipo === 'Delivery') totalDelivery += qty;
+          if (r.tipo === 'Camión') totalCamion += qty;
+          if (r.tipo === 'Otros') totalOtro += qty;
         }
       });
     }
 
-    // Totales Panel Planta (Inputs) - Mostrar CANTIDAD
+    // Totales Panel Planta (Inputs)
     const elTotalLocal = document.getElementById('totalLocal');
     if (elTotalLocal) elTotalLocal.value = totalLocal;
 
@@ -778,22 +764,89 @@ window.guardarVenta = function () {
     if (elTotalCamion) elTotalCamion.value = totalCamion;
 
     const elTotalOtro = document.getElementById('totalOtro');
-    // Mostrar solo el numero (cantidad)
     if (elTotalOtro) elTotalOtro.value = totalOtro;
 
     const elTotalGastos = document.getElementById('totalGastos');
-    if (elTotalGastos) elTotalGastos.value = formatCurrency(totalGastos);
+    if (elTotalGastos) {
+      elTotalGastos.value = formatCurrency(totalGastos);
+      // Auto-resize width based on content length (approximate)
+      elTotalGastos.style.width = (elTotalGastos.value.length + 2) + 'ch';
+    }
 
-    // Totales Dashboard
-    const elDashTotal = document.getElementById('dashTotal');
-    if (elDashTotal) elDashTotal.textContent = formatCurrency(totalDinero);
+    // Reuse calculated values for Dashboard
+    const totalTx = ventasDelDia.length;
 
-    const elDashBotellones = document.getElementById('dashBotellones');
-    if (elDashBotellones) elDashBotellones.textContent = totalBotellones;
+    // Debt Calculation
+    // We scan ALL ventas (limit 500) for pending debts, not just today's.
+    // However, 'ventasDelDia' is just today.
+    // Let's use 'allRecentVentas' for debt to be more accurate if available, 
+    // OR fetch a dedicated query for 'pending'.
+    // For now, let's rely on the dedicated 'loadPendingDebts' logic for the modal, 
+    // but for the DASHBOARD CARD, we need a quick sum.
+    // 'allRecentVentas' contains recent 500. It's a good proxy.
+    const pendingDebt = allRecentVentas.reduce((acc, curr) => {
+      if (curr.estadoPago === 'pendiente') {
+        return acc + (Number(curr.total) || 0);
+      }
+      return acc;
+    }, 0);
 
-    const elDashTransacciones = document.getElementById('dashTransacciones');
-    if (elDashTransacciones) elDashTransacciones.textContent = ventasDelDia ? ventasDelDia.length : 0;
 
+    // Update UI
+    if (document.getElementById('dashTotal')) {
+      document.getElementById('dashTotal').textContent = formatCurrency(totalDinero);
+
+      // Growth Indicator (Money)
+      const diffMoney = calculateDailyChange(totalDinero, 'money');
+      const diffEl = document.getElementById('diffTotal');
+      if (diffEl && diffMoney && diffMoney.show) {
+        const icon = diffMoney.positive ? 'bi-arrow-up-short' : 'bi-arrow-down-short';
+        const color = diffMoney.positive ? '#2ecc71' : '#e74c3c';
+        diffEl.innerHTML = `<i class="bi ${icon}" style="color:${color}; font-size:14px;"></i> <span style="color:${color}">${Math.abs(diffMoney.percent)}%</span> <span style="opacity:0.7">vs ayer $${diffMoney.val.toLocaleString()}</span>`;
+      } else if (diffEl) {
+        diffEl.innerHTML = '<span style="opacity:0.5">- vs ayer</span>';
+      }
+    }
+
+    if (document.getElementById('dashBotellones')) {
+      document.getElementById('dashBotellones').textContent = totalBotellones;
+
+      // Growth Indicator (Bottles)
+      const diffBottles = calculateDailyChange(totalBotellones, 'bottles');
+      const diffEl = document.getElementById('diffBotellones');
+      if (diffEl && diffBottles && diffBottles.show) {
+        const icon = diffBottles.positive ? 'bi-arrow-up-short' : 'bi-arrow-down-short';
+        const color = diffBottles.positive ? '#00c2ff' : '#e74c3c';
+        diffEl.innerHTML = `<i class="bi ${icon}" style="color:${color}; font-size:14px;"></i> <span style="color:${color}">${Math.abs(diffBottles.percent)}%</span>`;
+      } else if (diffEl) {
+        diffEl.innerHTML = '<span style="opacity:0.5">- vs ayer</span>';
+      }
+    }
+
+    if (document.getElementById('dashTransacciones')) document.getElementById('dashTransacciones').textContent = totalTx;
+    if (document.getElementById('dashDeuda')) document.getElementById('dashDeuda').textContent = formatCurrency(pendingDebt);
+
+    // Virtual Stock Calculation
+    // Stock = (Prod Hoy - Venta Botellones Hoy)
+    const lblStock = document.getElementById('dashStock');
+    const lblStockDetail = document.getElementById('dashStockDetail');
+
+    if (lblStock) {
+      // Get production from calculateProduccion (it reads inputs)
+      // Or better, define global var for 'produccionHoy' updated there.
+      // Let's read the inputs directly if they exist
+      const prodHoy = parseFloat(document.getElementById('calcBotellones') ? document.getElementById('calcBotellones').textContent : 0) || 0;
+
+      // Sales Today (Botellones) = totalBotellones
+      const stockEstimado = prodHoy - totalBotellones;
+
+      lblStock.textContent = (stockEstimado > 0 ? "+" : "") + Math.floor(stockEstimado);
+      lblStock.style.color = stockEstimado < 0 ? '#e74c3c' : '#9b59b6';
+
+      if (lblStockDetail) {
+        lblStockDetail.textContent = `Prod: ${Math.floor(prodHoy)} - Venta: ${totalBotellones}`;
+      }
+    }
     actualizarReportes();
   }
 
@@ -850,25 +903,81 @@ window.guardarVenta = function () {
   }
 
 
+  // -------// --- 🧭 NAVEGACIÓN ---
+  function setupNavigation() {
+    const navBtns = document.querySelectorAll('.nav-btn');
+    const views = document.querySelectorAll('.view');
+    const title = document.querySelector('header h2');
+    const viewTitleMap = {
+      'dashboard': 'Panel Principal',
+      'planta': 'Venta en Planta',
+      'camion': 'Venta Camiones',
+      'gastos': 'Registro de Gastos',
+      'reportes': 'Reportes y Finanzas',
+      'historial': 'Historial de Transacciones',
+      'produccion': 'Registro de Producción'
+    };
 
+    navBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Activar botón
+        navBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
 
+        // Mostrar vista
+        const targetTab = btn.getAttribute('data-tab');
+        views.forEach(v => v.classList.remove('active'));
+        const targetView = document.getElementById(`view-${targetTab}`);
+        if (targetView) targetView.classList.add('active');
 
-  // ---------- INICIALIZACIÓN ----------
-  // function init() original se mueve para ser llamada post-login
+        // Actualizar título (móvil y desktop)
+        if (title && viewTitleMap[targetTab]) {
+          title.textContent = viewTitleMap[targetTab];
+        }
+
+        // Cerrar sidebar en móvil si se usa
+        const sidebar = document.querySelector('.sidebar');
+        if (window.innerWidth <= 768 && sidebar.classList.contains('active')) {
+          sidebar.classList.remove('active');
+        }
+      });
+    });
+  }
+
+  // --- 🚀 INICIALIZACIÓN ---
+  // Old init function removed
+
 
   // ---------- AUTH & LIFECYCLE ----------
-  firebase.auth().onAuthStateChanged(user => {
+  let currentUser = null; // Global reference for the current user
+
+  // --- Listener de Autenticación ---
+  firebase.auth().onAuthStateChanged((user) => {
     const loginView = document.getElementById('view-login');
     const appContent = document.getElementById('app-content');
 
     if (user) {
-      // User is signed in.
       console.log("Usuario autenticado:", user.email);
+      currentUser = user; // Global ref if needed
       if (loginView) loginView.style.display = 'none';
-      if (appContent) appContent.style.display = 'flex'; // Flex para el layout sidebar/main
+      if (appContent) appContent.style.display = 'flex'; // Restore flex layout
 
-      // Inicializar datos
+      // Initialize App Logic
       init();
+
+      // Apply RBAC
+      const role = updateUIForRole(user.email);
+
+      // Filter History for Camion Role
+      // We override the 'filtrarHistorial' or data fetching?
+      // Better to filter "allRecentVentas" at the source (onSnapshot) or just before render.
+      // Let's attach role to window or global scope used by init/snapshot
+      window.currentUserRole = role;
+
+      // Initial UI Update done by init -> actual renders
+      // But init is async in setting up listeners.
+      // The listeners will fire and check 'currentUserRole'.
+
     } else {
       // No user is signed in.
       console.log("No hay usuario autenticado");
@@ -968,12 +1077,39 @@ window.guardarVenta = function () {
     });
   }
 
+  // PRECIO_CAMION definition (assuming it's defined globally or in a similar scope)
+
   function actualizarFecha() {
     const dateElement = document.getElementById('currentDate');
     if (!dateElement) return;
+    const now = new Date(); // Get current date for both display and reset check
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    const fe = new Date().toLocaleDateString('es-ES', options);
+    const fe = now.toLocaleDateString('es-ES', options);
     dateElement.textContent = fe.charAt(0).toUpperCase() + fe.slice(1);
+
+    // Check for Camion Total Reset (Days 1 and 16)
+    checkCamionTotalReset(now);
+  }
+
+  function checkCamionTotalReset(date) {
+    const day = date.getDate();
+    const month = date.getMonth();
+    const year = date.getFullYear();
+    const todayStr = `${year}-${month}-${day}`;
+
+    // Reset on day 1 (after 30/31) and day 16 (after 15)
+    if (day === 1 || day === 16) {
+      const lastReset = localStorage.getItem('camionTotalLastReset');
+      if (lastReset !== todayStr) {
+        // Perform Reset
+        const totalCamionInput = document.getElementById('totalCamion');
+        if (totalCamionInput) {
+          totalCamionInput.value = ''; // Clear the input
+          console.log("🚛 Total Camión reiniciado por corte de quincena/mes.");
+        }
+        localStorage.setItem('camionTotalLastReset', todayStr);
+      }
+    }
   }
 
   function renderRecentActivity() {
@@ -985,12 +1121,10 @@ window.guardarVenta = function () {
       return;
     }
 
-    // Sort by timestamp desc (assuming newer items are pushed last, so reverse) or utilize 'id' desc
-    // Since ventasDelDia is pushed chronologically, reverse is enough.
-    // However, if we want strict time sort:
-    // We don't have a raw timestamp in all objects, some have 'hora' string.
-    // Relying on array order (reverse) is safer for this simple app.
-    const recent = [...ventasDelDia].reverse().slice(0, 5);
+    // Sort by timestamp desc (already sorted by Firestore if we use that list)
+    // ventasDelDia is populated from snapshot which is ordered by createdAt desc.
+    // So we just take the first 5.
+    const recent = ventasDelDia.slice(0, 5);
 
     list.innerHTML = recent.map(t => `
         <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
@@ -999,7 +1133,23 @@ window.guardarVenta = function () {
                     <i class="bi bi-${getIconForType(t.tipo)}"></i>
                 </div>
                 <div>
-                    <div style="font-weight:500; color:var(--text-main);">${t.tipo === 'Gasto' ? t.descripcion : t.tipo + (t.detalles && t.detalles !== '-' ? ' (' + t.detalles + ')' : '')}</div>
+                    <div style="font-weight:500; color:var(--text-main);">
+                        ${(function () {
+        if (t.tipo === 'Gasto') return t.descripcion;
+        if (t.tipo === 'Camión' && t.detalles && t.detalles.startsWith('Ruta:')) {
+          // Simplify for Dashboard: Check Name and Status
+          try {
+            const nameMatch = t.detalles.match(/Ruta:\s*(.*?)\s*-/);
+            const statusMatch = t.detalles.match(/\((Pagado|Pendiente)\)$/);
+            const name = nameMatch ? nameMatch[1] : t.detalles;
+            const status = statusMatch ? statusMatch[1] : '';
+
+            return `${name} <span style="font-size:0.85em; opacity:0.75; margin-left:4px;">(${status})</span>`;
+          } catch (e) { return t.detalles; }
+        }
+        return t.tipo + (t.detalles && t.detalles !== '-' ? ' (' + t.detalles + ')' : '');
+      })()}
+                    </div>
                     <div style="font-size:12px; color:var(--text-muted);">${t.hora || '-'}</div>
                 </div>
             </div>
@@ -1101,7 +1251,7 @@ window.guardarVenta = function () {
     const end = new Date(endStr + 'T23:59:59');
 
     // Filter
-    const filtered = ventasDelDia.filter(v => {
+    const filtered = allRecentVentas.filter(v => {
       const d = getFechaFromId(v);
       return d >= start && d <= end;
     });
@@ -1197,24 +1347,43 @@ window.guardarVenta = function () {
 
   // ---------- FILTROS HISTORIAL ----------
   function filtrarHistorial() {
-    const dateVal = document.getElementById('historyDateInput').value;
+    const dateVal = document.getElementById('historyDateFilter').value; // Corrected ID
     const typeVal = document.getElementById('historyTypeFilter').value;
     const tbody = document.getElementById('historyTableBody') || document.getElementById('tablaRegistros');
 
-    let filtered = ventasDelDia;
+    let filtered = allRecentVentas;
 
     // Filter by Date
-    if (dateVal) {
-      // Force Local Time comparison for strict day matching
-      const filterDate = new Date(dateVal + 'T00:00:00').toDateString();
+    if (dateVal && dateVal !== 'todo') { // Adjusted for Select values
+      const now = new Date();
+      const todayStr = now.toDateString();
+
       filtered = filtered.filter(v => {
         const d = getFechaFromId(v);
-        return d.toDateString() === filterDate;
+        const dStr = d.toDateString();
+
+        if (dateVal === 'hoy') return dStr === todayStr;
+        if (dateVal === 'ayer') {
+          const ayer = new Date(now);
+          ayer.setDate(ayer.getDate() - 1);
+          return dStr === ayer.toDateString();
+        }
+        if (dateVal === 'semana') {
+          // Last 7 days
+          const weekAgo = new Date(now);
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          return d >= weekAgo;
+        }
+        if (dateVal === 'mes') {
+          // Current Month
+          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        }
+        return true; // Fallback or 'todo'
       });
     }
 
     // Filter by Type
-    if (typeVal) {
+    if (typeVal && typeVal !== 'todos') { // Adjusted for 'todos' value
       filtered = filtered.filter(v => (v.tipo || '') === typeVal);
     }
 
@@ -1234,23 +1403,84 @@ window.guardarVenta = function () {
       // cargarDesdeStorage(); // Disabled for Cloud Cloud
 
       // Setup Realtime Listener
-      ventasRef.orderBy("createdAt", "desc").onSnapshot((snapshot) => {
-        console.log("📡 Nuevo snapshot de Firestore. Docs:", snapshot.size);
+      // Setup Realtime Listener
+      // Only listen for recent items to avoid reading entire DB history
+      // We filter by "today" in client, but limit query to recent 500
+      ventasRef.orderBy("createdAt", "desc").limit(500).onSnapshot((snapshot) => {
+        console.log("📡 Nuevo snapshot de Firestore");
         ventasDelDia = [];
+        allRecentVentas = [];
+
+        // Strict "Today" Filter
+        const todayStr = new Date().toDateString();
 
         snapshot.forEach((doc) => {
-          ventasDelDia.push({ id: doc.id, ...doc.data() });
+          const data = doc.data();
+          const registro = { id: doc.id, ...data };
+
+          // Store raw history
+          const role = window.currentUserRole;
+
+          // CAMION EXCLUSIVE HISTORY LOGIC
+          // If role is 'camion', only include 'Camión' records AND 'Gasto' records? 
+          // User said: "vea sus movimientos". Usually means their sales and filtered expenses?
+          // Or just allow all Gastos (simpler)? 
+          // Restriction: "camion ve camion y gastos".
+          // Let's filter 'allRecentVentas' here correctly.
+
+          let addToHistory = true;
+          if (role === 'camion') {
+            if (registro.tipo !== 'Camión' && registro.tipo !== 'Gasto') {
+              addToHistory = false;
+            }
+          }
+          // Planta logic? "solo puede ver planta..."
+          // If we want to hide Camion data from Planta?
+          // User didn't strictly say "hide history from planta", but implies RBAC.
+          // Only Camion was explicit about "historial exclusivo".
+          // I'll stick to Camion restriction for now.
+
+          if (addToHistory) {
+            allRecentVentas.push(registro);
+          }
+
+          // Dashboard Filter: Only Today
+          let shouldInclude = false;
+
+          // Case 1: Pending write (createdAt is null) -> Assume it's happening NOW (Today)
+          if (data.createdAt === null) {
+            shouldInclude = true;
+          }
+          // Case 2: Has createdAt -> Check date
+          else if (data.createdAt) {
+            const d = new Date(data.createdAt.seconds * 1000);
+            if (d.toDateString() === todayStr) shouldInclude = true;
+          }
+          // Case 3: Fallback legacy 'fecha'
+          else if (data.fecha) {
+            const d = new Date(data.fecha);
+            if (d.toDateString() === todayStr) shouldInclude = true;
+          }
+
+          if (shouldInclude) {
+            ventasDelDia.push(registro);
+          }
         });
 
         // Re-render UI
-        actualizarEmpleadosVisual(); // Needs calling? Maybe not relevant to sales? 
-        // Actually updating employees is separate but sales might affect stats.
-
+        actualizarEmpleadosVisual();
         actualizarTablaRegistros();
         actualizarTotalDiario();
         actualizarReportes();
         renderRecentActivity();
       });
+
+      // Re-render UI
+      actualizarEmpleadosVisual();
+      actualizarTablaRegistros();
+      actualizarTotalDiario();
+      actualizarReportes();
+      renderRecentActivity();
 
       // Employees Listener
       empleadosRef.orderBy("nombre").onSnapshot((snapshot) => {
@@ -1282,8 +1512,8 @@ window.guardarVenta = function () {
       if (btnPdf) btnPdf.addEventListener('click', exportarPDF);
 
       // Bind Filter Buttons (Historial)
-      const histDate = document.getElementById('historyDateInput');
-      if (histDate) histDate.addEventListener('input', filtrarHistorial);
+      const histDate = document.getElementById('historyDateFilter'); // Corrected ID
+      if (histDate) histDate.addEventListener('change', filtrarHistorial); // Changed to 'change'
 
       const histType = document.getElementById('historyTypeFilter');
       if (histType) histType.addEventListener('change', filtrarHistorial);
@@ -1295,8 +1525,570 @@ window.guardarVenta = function () {
     }
   }
 
-  // No llamamos a init() directamente en DOMContentLoaded, 
-  // dejamos que onAuthStateChanged lo haga si hay usuario.
-  // document.addEventListener('DOMContentLoaded', init);
+  // --- 🔒 RBAC & AUTH ---
+  function updateUIForRole(email) {
+    if (!email) return;
 
+    // Define Roles (Simple Mapping)
+    // admin: all
+    // planta: planta, gastos, produccion
+    // camion: camion, gastos, historial (filtered)
+
+    let role = 'user'; // default (maybe limited?)
+
+    // Explicit mappings or logic
+    if (email.includes('admin') || email === 'joelsanchez@awa.com') role = 'admin';
+    else if (email.includes('planta')) role = 'planta';
+    else if (email.includes('camion')) role = 'camion';
+
+    console.log(`👤 User Role Detected: ${role} (${email})`);
+
+    // Sidebar Permissions
+    const allTabs = ['dashboard', 'planta', 'camion', 'gastos', 'reportes', 'historial', 'produccion'];
+    let allowedTabs = [];
+
+    if (role === 'admin') {
+      allowedTabs = allTabs;
+    } else if (role === 'planta') {
+      allowedTabs = ['planta', 'gastos', 'produccion'];
+    } else if (role === 'camion') {
+      allowedTabs = ['camion', 'gastos', 'historial'];
+    }
+
+    // Hide/Show Sidebar Buttons
+    const navBtns = document.querySelectorAll('.nav-btn');
+    navBtns.forEach(btn => {
+      const tab = btn.getAttribute('data-tab');
+      if (allowedTabs.includes(tab)) {
+        btn.style.display = 'flex';
+      } else {
+        btn.style.display = 'none';
+      }
+    });
+
+    // Handle initial redirect if on forbidden tab or default
+    // If Admin/Default -> Dashboard
+    // If Planta -> Planta
+    // If Camion -> Camion
+    // (This logic usually handled by defaulting to first visible tab or keeping current if allowed)
+    // Let's force a safe default on load
+    const activeBtn = document.querySelector('.nav-btn.active');
+    const activeTab = activeBtn ? activeBtn.getAttribute('data-tab') : null;
+
+    if (!allowedTabs.includes(activeTab)) {
+      // Find first allowed tab
+      const firstAllowed = allowedTabs[0];
+      if (firstAllowed) {
+        // Simulate click
+        const targetBtn = document.querySelector(`.nav-btn[data-tab="${firstAllowed}"]`);
+        if (targetBtn) targetBtn.click();
+      }
+    }
+
+    return role;
+  }
+
+  // --- 🏭 MÓDULO DE PRODUCCIÓN ---
+
+  const produccionRef = db.collection("produccion");
+  let produccionHistorial = [];
+
+  function setupProduccionListeners() {
+    console.log("🏭 Inicializando Listeners de Producción...");
+    const medAyer = document.getElementById('prodMedidorAyer');
+    const medHoy = document.getElementById('prodMedidorHoy');
+    const btnGuardar = document.getElementById('btnGuardarProduccion');
+    const mesFilter = document.getElementById('prodMesFilter');
+
+    if (medAyer && medHoy) {
+      [medAyer, medHoy].forEach(input => {
+        input.addEventListener('input', calcularProduccion);
+      });
+    }
+
+    if (btnGuardar) btnGuardar.addEventListener('click', guardarProduccion);
+
+    // Set default month to current
+    if (mesFilter) {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      mesFilter.value = `${year}-${month}`;
+      mesFilter.addEventListener('change', actualizarTablaProduccion);
+    }
+
+    // Load last reading for 'Ayer' input
+    cargarUltimaLectura();
+  }
+
+  function calcularProduccion() {
+    const ayer = parseFloat(document.getElementById('prodMedidorAyer').value) || 0;
+    const hoy = parseFloat(document.getElementById('prodMedidorHoy').value) || 0;
+
+    let dif = 0;
+    let botellones = 0;
+
+    if (hoy > 0) {
+      dif = hoy - ayer;
+      botellones = dif / 5;
+    }
+
+    const lblGalones = document.getElementById('calcGalones');
+    const lblBotellones = document.getElementById('calcBotellones');
+
+    if (lblGalones) lblGalones.textContent = dif.toLocaleString('en-US');
+    if (lblBotellones) lblBotellones.textContent = Number.isInteger(botellones) ? botellones : botellones.toFixed(1);
+  }
+
+  function cargarUltimaLectura() {
+    // ... codigo anterior ok ...
+    produccionRef.orderBy("createdAt", "desc").limit(1).get()
+      .then(snapshot => {
+        if (!snapshot.empty) {
+          const data = snapshot.docs[0].data();
+          inputAyer.value = data.medidorActual;
+          calcularProduccion();
+          // Force UI update for stock
+          setTimeout(actualizarUI, 500);
+        }
+      })
+      .catch(console.error);
+  }
+
+  function actualizarUI() {
+    // Wrapper to refresh totals and stock (can be called from production change)
+    actualizarTotalDiario();
+  }
+
+  function guardarProduccion() {
+    const ayer = parseFloat(document.getElementById('prodMedidorAyer').value) || 0;
+    const hoy = parseFloat(document.getElementById('prodMedidorHoy').value) || 0;
+
+    if (hoy <= 0 || hoy <= ayer) {
+      alert("⚠️ El medidor actual debe ser mayor al anterior.");
+      return;
+    }
+
+    const diferencia = hoy - ayer;
+    const botellones = diferencia / 5;
+    const fecha = new Date(); // To create filterable date
+
+    const registro = {
+      medidorAnterior: ayer,
+      medidorActual: hoy,
+      galones: diferencia,
+      botellones: botellones,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      fecha: fecha.toISOString(),
+      yearMonth: `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}` // Helper index
+    };
+
+    produccionRef.add(registro)
+      .then(() => {
+        alert("✅ Producción guardada");
+        document.getElementById('prodMedidorHoy').value = '';
+        document.getElementById('prodMedidorAyer').value = hoy;
+        calcularProduccion();
+      })
+      .catch(err => {
+        console.error(err);
+        alert("❌ Error al guardar");
+      });
+  }
+
+  function actualizarTablaProduccion() {
+    const tbody = document.getElementById('produccionTableBody');
+    const mesFilter = document.getElementById('prodMesFilter');
+    const totalMesInput = document.getElementById('totalProduccionMes');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    // Filtro por mes
+    const selectedMonth = mesFilter ? mesFilter.value : null;
+
+    let totalBotellonesMes = 0;
+
+    // Filter list
+    const filteredList = produccionHistorial.filter(item => {
+      if (!selectedMonth) return true; // Show all if no filter (though UI enforces input)
+
+      let itemDate;
+      if (item.createdAt) {
+        itemDate = new Date(item.createdAt.seconds * 1000);
+      } else if (item.fecha) {
+        itemDate = new Date(item.fecha);
+      } else {
+        return false;
+      }
+
+      const itemYM = `${itemDate.getFullYear()}-${String(itemDate.getMonth() + 1).padStart(2, '0')}`;
+      return itemYM === selectedMonth;
+    });
+
+    filteredList.forEach(item => {
+      let fechaStr = "---";
+      if (item.createdAt && item.createdAt.seconds) {
+        fechaStr = new Date(item.createdAt.seconds * 1000).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: '2-digit' });
+      }
+
+      totalBotellonesMes += (Number(item.botellones) || 0);
+
+      const tr = document.createElement('tr');
+      // Style spacing
+      tr.style.borderBottom = "1px solid rgba(255,255,255,0.05)";
+
+      tr.innerHTML = `
+            <td data-label="Fecha" style="padding:16px 15px; font-weight:500;">${fechaStr}</td>
+            <td data-label="Ayer" style="color:#ff9f43; background:rgba(255,159,67,0.1); border-radius:8px; padding:8px 15px; text-align:center; font-weight:500;">${item.medidorAnterior}</td>
+            <td data-label="Hoy" style="color:#00c2ff; background:rgba(0,194,255,0.1); border-radius:8px; padding:8px 15px; text-align:center; font-weight:500;">${item.medidorActual}</td>
+            <td data-label="Galones" style="text-align:center; padding:0 15px;">${item.galones}</td>
+            <td data-label="Botellones" style="font-weight:bold; color:var(--success); font-size:16px; text-align:center; padding:0 15px;">${Number(item.botellones).toFixed(1)}</td>
+            <td data-label="Acción" style="text-align:right; padding-right:10px;">
+                <button onclick="eliminarProduccion('${item.id}')" class="btn-icon danger"><i class="bi bi-trash"></i></button>
+            </td>
+        `;
+      tbody.appendChild(tr);
+    });
+
+    // Update Header Total
+    if (totalMesInput) {
+      totalMesInput.value = totalBotellonesMes.toLocaleString('en-US', { maximumFractionDigits: 1 });
+    }
+  }
+
+  // ... eliminarProduccion ...
+  window.eliminarProduccion = function (id) {
+    if (confirm("¿Borrar este registro?")) {
+      produccionRef.doc(id).delete().catch(console.error);
+    }
+  }
+
+  // Listener principal (trae max 100 para no sobrecargar, el filtro es en cliente por ahora)
+  produccionRef.orderBy("createdAt", "desc").limit(100).onSnapshot(snapshot => {
+    produccionHistorial = [];
+    snapshot.forEach(doc => {
+      produccionHistorial.push({ id: doc.id, ...doc.data() });
+    });
+    actualizarTablaProduccion();
+  });
+
+  // --- 👥 MÓDULO DE CLIENTES (CAMIÓN) ---
+  // Clients Module moved to js/clients.js
+  // Route logic handled there/or here?
+  // Cleaning up...
+
+  // Check for new items
+  // Listener logic moved to clients.js or main init
+
+
+  // Helper for generated sound
+  function playNotificationBeep() {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(500, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1000, ctx.currentTime + 0.1);
+
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start();
+      osc.stop(ctx.currentTime + 0.5);
+    } catch (e) { console.error("Audio error", e); }
+  }
+
+  // --- 📱 MOBILE OPTIMIZATIONS (PTR & RESUME) ---
+
+  // 1. Auto-Reconnect on Resume (App Switching)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      console.log("🔄 App resumed - forcing sync...");
+
+      // Force Firestore Network Reconnection
+      rutaRef.firestore.disableNetwork().then(() => {
+        rutaRef.firestore.enableNetwork();
+      });
+
+      // Force timestamp update
+      actualizarFecha();
+
+      // Update list if in Route view
+      if (document.getElementById('view-camion').classList.contains('active')) {
+        // Re-trigger modal render if open or just let listeners handle it
+      }
+    }
+  });
+
+  // 2. Pull to Refresh (Visual & "Native-like")
+  let ptrStartY = 0;
+  let ptrDistance = 0;
+  let isPtrActive = false;
+  let ptrLoader = null;
+  let activeScrollTarget = null;
+
+  // Initialize Loader
+  window.addEventListener('DOMContentLoaded', () => {
+    ptrLoader = document.createElement('div');
+    ptrLoader.id = 'ptr-loader';
+    ptrLoader.innerHTML = '<i class="bi bi-arrow-down"></i>';
+    document.body.appendChild(ptrLoader);
+  });
+
+  function getScrollableParent(node) {
+    if (node == null) return null;
+    if (node.tagName === 'BODY' || node.tagName === 'HTML') return null;
+    // Check if element is scrollable
+    const style = window.getComputedStyle(node);
+    const isScrollable = (style.overflowY === 'auto' || style.overflowY === 'scroll');
+
+    if (isScrollable && node.scrollHeight > node.clientHeight) {
+      return node;
+    }
+    return getScrollableParent(node.parentNode);
+  }
+
+  window.addEventListener('touchstart', (e) => {
+    // Only allow if touching near the top of the interface 
+    // OR if the active view is scrolled to top.
+    const touchY = e.touches[0].clientY;
+    activeScrollTarget = getScrollableParent(e.target);
+
+    // If we are inside a scrollable container (like the list), ensure it's at top
+    if (activeScrollTarget && activeScrollTarget.scrollTop > 0) {
+      isPtrActive = false;
+      return;
+    }
+
+    // If not in a scrollable container, strictly require touch to start in top 20% of screen
+    // This solves "only if I do it from the top"
+    if (!activeScrollTarget && touchY > (window.innerHeight * 0.2)) {
+      isPtrActive = false;
+      return;
+    }
+
+    ptrStartY = touchY;
+    ptrDistance = 0;
+    isPtrActive = true;
+
+    if (ptrLoader) {
+      ptrLoader.style.transition = 'none'; // Remove transition for realtime drag
+      ptrLoader.querySelector('.bi').classList.remove('bi-arrow-repeat');
+      ptrLoader.querySelector('.bi').classList.add('bi-arrow-down');
+      ptrLoader.classList.remove('refreshing');
+    }
+  }, { passive: true });
+
+  window.addEventListener('touchmove', (e) => {
+    if (!isPtrActive) return;
+    const touchY = e.touches[0].clientY;
+    const diff = touchY - ptrStartY;
+
+    // Only pull down
+    if (diff > 0) {
+      // Check scroll again just in case
+      if (activeScrollTarget && activeScrollTarget.scrollTop > 0) {
+        isPtrActive = false;
+        ptrLoader.style.top = '-60px';
+        return;
+      }
+
+      // Resistance formula
+      ptrDistance = Math.pow(diff, 0.8); // Damping
+
+      // Max pull distance visually
+      if (ptrDistance > 150) ptrDistance = 150;
+
+      if (ptrLoader) {
+        ptrLoader.style.top = (ptrDistance - 60) + 'px'; // -60 is hidden state
+        ptrLoader.querySelector('.bi').style.transform = `rotate(${ptrDistance * 2}deg)`;
+      }
+    } else {
+      isPtrActive = false;
+    }
+  }, { passive: true });
+
+  window.addEventListener('touchend', () => {
+    if (!isPtrActive) return;
+    isPtrActive = false;
+
+    if (ptrLoader) {
+      ptrLoader.style.transition = 'top 0.3s ease';
+
+      // Threshold to trigger reload
+      if (ptrDistance > 80) { // Standard threshold
+        ptrLoader.style.top = '20px'; // Snap to active position
+        ptrLoader.classList.add('refreshing');
+        ptrLoader.querySelector('.bi').classList.remove('bi-arrow-down');
+        ptrLoader.querySelector('.bi').classList.add('bi-arrow-repeat');
+
+        // Trigger Reload
+        setTimeout(() => {
+          window.location.reload();
+        }, 800);
+      } else {
+        // Bounce back to hidden
+        ptrLoader.style.top = '-60px';
+      }
+    }
+  });
+
+  window.solicitarNotificaciones = function () {
+    Notification.requestPermission().then(permission => {
+      if (permission === "granted") {
+      } else {
+        alert("❌ Permiso denegado");
+      }
+    });
+  }
+
+
+  // --- SMART SEARCH ---
+  function setupCommentSearch() {
+    const commentInput = document.getElementById('commentCamion');
+    const suggestionsBox = document.getElementById('suggestionsList');
+
+    if (!commentInput || !suggestionsBox) return;
+
+    commentInput.addEventListener('input', function () {
+      const val = this.value.toLowerCase().trim();
+      if (val.length < 2) {
+        suggestionsBox.style.display = 'none';
+        return;
+      }
+
+      const matches = listaClientes.filter(c => c.nombre.toLowerCase().includes(val));
+
+      if (matches.length === 0) {
+        suggestionsBox.style.display = 'none';
+        return;
+      }
+
+      suggestionsBox.innerHTML = matches.map(c => `
+            <div class="suggestion-item" onmousedown="event.preventDefault(); selectClientFromSearch('${c.id}')" ontouchstart="event.preventDefault(); selectClientFromSearch('${c.id}')">
+                <strong>${c.nombre}</strong> <small>(RD$${c.precioEspecial})</small>
+            </div>
+        `).join('');
+      suggestionsBox.style.display = 'block';
+    });
+
+    // Hide when clicking outside
+    // Hide when clicking outside
+    const closeSuggestions = function (e) {
+      if (!commentInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+        suggestionsBox.style.display = 'none';
+      }
+    };
+
+    document.addEventListener('click', closeSuggestions);
+    document.addEventListener('touchstart', closeSuggestions); // Use separate listener for mobile touch consistency
+
+  }
+
+  window.selectClientFromSearch = function (id) {
+    const selector = document.getElementById('clienteCamionSelector');
+    const suggestionsBox = document.getElementById('suggestionsList');
+    // const commentInput = document.getElementById('commentCamion');
+
+    if (selector) {
+      selector.value = id;
+      seleccionarClienteCamion(); // Trigger price update
+    }
+
+    // Hide suggestions immediately
+    if (suggestionsBox) suggestionsBox.style.display = 'none';
+  }
+
+  // Init Search
+  setupCommentSearch();
+
+
+
+})();
+
+// --- GESTOS SWIPE (DESLIZAR) ---
+(function () {
+  let touchStartX = 0;
+  let touchEndX = 0;
+  let touchStartY = 0;
+  let touchEndY = 0;
+  const minSwipeDistance = 80;
+
+  // Lista ordenada de IDs de vistas
+  const views = [
+    'view-dashboard',
+    'view-planta',
+    'view-camion',
+    'view-gastos',
+    'view-historial',
+    'view-reportes',
+    'view-produccion'
+  ];
+
+  document.addEventListener('touchstart', e => {
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+  }, { passive: true });
+
+  document.addEventListener('touchend', e => {
+    touchEndX = e.changedTouches[0].screenX;
+    touchEndY = e.changedTouches[0].screenY;
+    handleSwipe();
+  }, { passive: true });
+
+  function handleSwipe() {
+    const diffX = touchStartX - touchEndX;
+    const diffY = touchStartY - touchEndY;
+
+    // 1. Verificar umbral mínimo horizontal
+    if (Math.abs(diffX) < minSwipeDistance) return;
+
+    // 2. Verificar que no sea scroll vertical (si movió más en Y que en X, es scroll)
+    if (Math.abs(diffY) > Math.abs(diffX)) return;
+
+    // Determinar vista actual
+    // Busca cuál tiene display block. Si ninguna (inicio), asume dashboard.
+    const currentView = views.find(id => {
+      const el = document.getElementById(id);
+      return el && window.getComputedStyle(el).display !== 'none';
+    }) || 'view-dashboard';
+
+    const currentIndex = views.indexOf(currentView);
+    if (currentIndex === -1) return;
+
+    let targetSection = null;
+
+    if (diffX > 0) {
+      // Deslizar izquierda -> Siguiente
+      if (currentIndex < views.length - 1) {
+        targetSection = views[currentIndex + 1].replace('view-', '');
+      }
+    } else {
+      // Deslizar derecha -> Anterior
+      if (currentIndex > 0) {
+        targetSection = views[currentIndex - 1].replace('view-', '');
+      }
+    }
+
+    if (targetSection) {
+      // Intentar usar función global, si no, simular click en botón
+      if (typeof window.mostrarSeccion === 'function') {
+        window.mostrarSeccion(targetSection);
+      } else {
+        // Buscar botón de navegación
+        const btn = Array.from(document.querySelectorAll('button')).find(b =>
+          b.getAttribute('onclick') && b.getAttribute('onclick').includes(`'${targetSection}'`)
+        );
+        if (btn) btn.click();
+      }
+    }
+  }
 })();
