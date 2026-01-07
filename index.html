@@ -27,7 +27,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/main.css?v=113">
+    <link rel="stylesheet" href="css/main.css?v=20250101">
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
@@ -586,40 +586,61 @@
             <!-- VIEW: REPORTES -->
             <div id="view-reportes" class="view">
                 <div class="section-card">
-                    <h3><i class="bi bi-sliders"></i> Filtros</h3>
-                    <div class="filters-bar">
-                        <div class="filter-group">
-                            <label for="reportStart">Desde</label>
-                            <input type="date" id="reportStart">
-                        </div>
-                        <div class="filter-group">
-                            <label for="reportEnd">Hasta</label>
-                            <input type="date" id="reportEnd">
-                        </div>
-                        <div class="filter-actions">
-                            <button class="btn btn-primary" id="btnFilterReport">Filtrar</button>
-                            <button class="btn btn-outline" id="btnResetReport">Hoy</button>
-                            <button class="btn btn-outline" id="btnExportPDF" title="Exportar PDF">
-                                <i class="bi bi-file-earmark-pdf"></i>
+                    <h3><i class="bi bi-sliders"></i> Filtros de Reporte</h3>
+
+                    <!-- Modern Filter Toolbar -->
+                    <div style="display:flex; flex-direction:column; gap:12px;">
+
+                        <!-- Filter Chips Scroll Area -->
+                        <div class="filter-pills-row">
+                            <button class="filter-pill active" data-filter="today"
+                                onclick="window.app.applyQuickFilter('today', this)">Hoy</button>
+                            <button class="filter-pill" data-filter="yesterday"
+                                onclick="window.app.applyQuickFilter('yesterday', this)">Ayer</button>
+                            <button class="filter-pill" data-filter="week"
+                                onclick="window.app.applyQuickFilter('week', this)">Semana</button>
+                            <button class="filter-pill" data-filter="month"
+                                onclick="window.app.applyQuickFilter('month', this)">Mes</button>
+                            <button class="filter-pill" id="btnCustomDateToggle"
+                                onclick="window.app.toggleCustomDate(this)">
+                                <i class="bi bi-calendar3"></i>
+                            </button>
+                            <button class="filter-pill"
+                                style="margin-left:auto; border:none; background:transparent; padding:5px;"
+                                id="btnExportPDF" title="Exportar PDF">
+                                <i class="bi bi-file-earmark-pdf" style="font-size:1.4em; color:var(--primary)"></i>
                             </button>
                         </div>
-                        <!-- New Debt Manager Button -->
+
+                        <!-- Hidden Date Picker (Slide Down) -->
+                        <div id="customDatePanel" class="date-range-picker" style="display:none;">
+                            <div class="filters-bar"
+                                style="background:var(--bg-lighter); padding:15px; border-radius:16px; border:1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
+                                <div class="filter-group">
+                                    <label for="reportStart">Desde</label>
+                                    <input type="date" id="reportStart">
+                                </div>
+                                <div class="filter-group">
+                                    <label for="reportEnd">Hasta</label>
+                                    <input type="date" id="reportEnd">
+                                </div>
+                                <div class="filter-actions">
+                                    <button class="btn btn-primary" id="btnFilterReport"
+                                        style="padding:8px 20px;">Aplicar</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Debt Manager Button -->
                         <button onclick="toggleDebtsModal()" class="btn full-width"
-                            style="margin-top:10px; background:rgba(231, 29, 54, 0.1); color:#e71d36; border:1px solid #e71d36; font-weight:600;">
+                            style="margin-top:10px; background:rgba(231, 29, 54, 0.1); color:#e71d36; border:1px solid #e71d36; font-weight:600; border-radius:12px;">
                             <i class="bi bi-person-exclamation"></i> Gestionar Deudas
                         </button>
+
                     </div>
                 </div>
 
-                <!-- Expenses Chart Section (New) -->
-                <div class="section-card" style="margin-top:20px;">
-                    <h3><i class="bi bi-pie-chart"></i> Desglose de Gastos</h3>
-                    <div style="height:300px; position:relative;">
-                        <canvas id="gastosChart"></canvas>
-                    </div>
-                    <div id="gastosLegend"
-                        style="margin-top:15px; display:flex; flex-wrap:wrap; gap:10px; justify-content:center;"></div>
-                </div>
+
 
                 <div class="section-card" style="margin-top:20px;">
                     <h3><i class="bi bi-table"></i> Resumen del Período</h3>
@@ -649,6 +670,17 @@
                             <div style="height:250px; position:relative;">
                                 <canvas id="salesPieChart"></canvas>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Expenses Chart Section (Moved Down) -->
+                    <div class="section-card" style="margin-top:24px;">
+                        <h3><i class="bi bi-wallet2"></i> Desglose de Gastos</h3>
+                        <div style="height:250px; position:relative;">
+                            <canvas id="gastosChart"></canvas>
+                        </div>
+                        <div id="gastosLegend"
+                            style="margin-top:15px; display:flex; flex-wrap:wrap; gap:10px; justify-content:center;">
                         </div>
                     </div>
 
@@ -726,8 +758,10 @@
                         <table id="tablaRegistros" class="data-table">
                             <thead>
                                 <tr>
+                                    <th>Fecha</th>
                                     <th>Hora</th>
                                     <th>Tipo</th>
+                                    <th>Modalidad</th>
                                     <th>Detalle</th>
                                     <th>Cant.</th>
                                     <th>Precio</th>
@@ -943,11 +977,11 @@
 
     <!-- Main Script -->
     <!-- Modules -->
-    <script src="js/utils.js"></script>
-    <script src="js/globals.js"></script>
-    <script src="js/clients.js"></script>
-    <script src="js/reports.js"></script>
-    <script src="script.js?v=132"></script>
+    <script src="js/utils.js?v=20250101"></script>
+    <script src="js/globals.js?v=20250101"></script>
+    <script src="js/clients.js?v=20250101"></script>
+    <script src="js/reports.js?v=20250101"></script>
+    <script src="script.js?v=20250101"></script>
 </body>
 
 </html>

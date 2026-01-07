@@ -243,6 +243,9 @@ window.guardarVenta = function () {
       return;
     }
 
+    const ahora = new Date();
+    const hora = ahora.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
     const nuevoGasto = {
       tipo: 'Gasto',
       descripcion: descripcion,
@@ -251,6 +254,8 @@ window.guardarVenta = function () {
       precioUnitario: monto,
       total: -Math.abs(monto), // Negative for easy summing
       fecha: new Date().toISOString(),
+      timestamp: Date.now(),
+      hora: hora,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
 
@@ -608,6 +613,194 @@ window.guardarVenta = function () {
     filtrarHistorial();
   }
 
+
+  window.editarRegistro = function (id) {
+    const loadingPopup = Swal.fire({
+      title: 'Cargando...',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading()
+    });
+
+    window.ventasRef.doc(id).get().then(doc => {
+      loadingPopup.close();
+
+      if (!doc.exists) {
+        Swal.fire('Error', 'Registro no encontrado', 'error');
+        return;
+      }
+
+      const data = doc.data();
+      const isGasto = data.tipo === 'Gasto';
+      const isCamion = data.tipo === 'Camión';
+
+      // Prepare initial values
+      const currentDetalle = data.detalles || data.descripcion || '';
+      const currentQty = data.cantidad || 1;
+      // Absolute values for editing
+      // Absolute values for editing
+      const currentTotal = Math.abs(data.total || 0);
+
+      // Force calculation of Unit Price from Total & Qty to ensure consistency
+      // (Ignoring data.precioUnitario because sometimes it might fit incorrect legacy totals)
+      let currentPrecio = currentQty > 0 ? (currentTotal / currentQty) : currentTotal;
+
+      // Formatting to max 2 decimals if needed, but keeping precision for edit if integer
+      if (currentPrecio % 1 !== 0) currentPrecio = parseFloat(currentPrecio.toFixed(2));
+
+      // Determine Modality (Subtype) if applicable
+      let currentModality = data.subtipo || 'Solo';
+      if (!data.subtipo && isCamion) {
+        // Try to guess from details if legacy
+        if (currentDetalle.toLowerCase().includes('ayudante')) currentModality = 'Ayudante';
+      }
+
+      Swal.fire({
+        title: 'Editar Registro',
+        html: `
+          <div style="text-align:left; font-size:14px;">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+              
+              <!-- MODALITY / TYPE SELECTOR -->
+              <div>
+                <label style="display:block; margin-bottom:4px; color:#666; font-weight:600;">Modalidad / Tipo</label>
+                <select id="swal-edit-mode" class="swal2-input" style="margin:0; width:100%; height:38px; padding:0 10px;">
+                  ${isCamion
+            ? `<option value="Solo" ${currentModality === 'Solo' ? 'selected' : ''}>👤 Solo (Yo)</option>
+                         <option value="Ayudante" ${currentModality === 'Ayudante' ? 'selected' : ''}>👥 Con Ayudante</option>`
+            : `<option value="${data.tipo}" selected>${data.tipo}</option>`
+          }
+                </select>
+              </div>
+
+              <!-- QUANTITY INPUT -->
+              <div>
+                <label style="display:block; margin-bottom:4px; color:#666; font-weight:600;">Cantidad</label>
+                <input id="swal-edit-qty" type="number" class="swal2-input" style="margin:0; width:100%; height:38px;" 
+                       value="${currentQty}" min="1" step="1">
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
+              <!-- PRICE INPUT -->
+              <div>
+                <label style="display:block; margin-bottom:4px; color:#666; font-weight:600;">Precio Unitario</label>
+                <input id="swal-edit-price" type="number" class="swal2-input" style="margin:0; width:100%; height:38px;" 
+                       value="${currentPrecio}" min="0" step="any">
+              </div>
+
+              <!-- TOTAL READONLY -->
+              <div>
+                <label style="display:block; margin-bottom:4px; color:#666; font-weight:600;">Total (Calc)</label>
+                <input id="swal-edit-total" type="text" class="swal2-input" style="margin:0; width:100%; height:38px; background:#f0f0f0; color:#333;" 
+                       value="${currentTotal}" readonly>
+              </div>
+            </div>
+
+            <!-- DETAILS TEXTAREA -->
+            <label style="display:block; margin-bottom:4px; color:#666; font-weight:600;">Comentario / Detalle</label>
+            <textarea id="swal-edit-detail" class="swal2-textarea" style="margin:0; width:100%; height:80px; font-size:14px;" 
+                      placeholder="Detalles de la venta...">${currentDetalle}</textarea>
+            
+            ${isGasto ? '<div style="margin-top:10px; font-size:12px; color:#d63031; background:rgba(231,76,60,0.1); padding:5px; border-radius:4px;">⚠️ Es un Gasto: El total se guardará como negativo.</div>' : ''}
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '💾 Guardar Cambios',
+        cancelButtonText: 'Cancelar',
+        didOpen: () => {
+          // LIVE CALCULATION LOGIC
+          const qtyInput = document.getElementById('swal-edit-qty');
+          const priceInput = document.getElementById('swal-edit-price');
+          const totalInput = document.getElementById('swal-edit-total');
+
+          function recalc() {
+            const q = parseFloat(qtyInput.value) || 0;
+            const p = parseFloat(priceInput.value) || 0;
+            const t = q * p;
+            totalInput.value = t.toFixed(2);
+          }
+
+          qtyInput.addEventListener('input', recalc);
+          priceInput.addEventListener('input', recalc);
+        },
+        preConfirm: () => {
+          const newModality = document.getElementById('swal-edit-mode').value;
+          const newQty = parseFloat(document.getElementById('swal-edit-qty').value);
+          const newPrice = parseFloat(document.getElementById('swal-edit-price').value);
+          const newDetail = document.getElementById('swal-edit-detail').value.trim();
+
+          if (!newDetail) return Swal.showValidationMessage('El detalle es obligatorio');
+          if (isNaN(newQty) || newQty <= 0) return Swal.showValidationMessage('Cantidad inválida');
+          if (isNaN(newPrice) || newPrice < 0) return Swal.showValidationMessage('Precio inválido');
+
+          return { newModality, newQty, newPrice, newDetail };
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          const { newModality, newQty, newPrice, newDetail } = result.value;
+
+          // Calculate Final Total
+          let finalTotal = newQty * newPrice;
+
+          // Handle Negativity for Expenses
+          if (isGasto || (data.total < 0 && data.tipo !== 'Camión')) {
+            finalTotal = -Math.abs(finalTotal);
+          }
+
+          let finalDetail = newDetail;
+
+          // SPECIAL CAMION LOGIC: Regenerate description if modality changed
+          if (isCamion) {
+            // Check if user Manually edited the text. If they did, we might verify if they included the new mode.
+            // But to ensure the "Solo/Ayudante" label is correct, we can force-inject it.
+            // Structure: "Ruta: Name (Mode) - Address" or just "Name (Mode)"
+
+            // 1. Remove old mode tags to get clean text
+            // 1. Remove old mode tags to get clean text
+            let cleanDetail = finalDetail
+              .replace(/\(\s*Solo\s*\)/gi, '')
+              .replace(/\(\s*Ayudante\s*\)/gi, '')
+              .replace(/\(\s*Con\s+Ayudante\s*\)/gi, '')
+              .replace(/\s+/g, ' ')
+              .trim();
+
+            // 2. Append new mode
+            finalDetail = `${cleanDetail} (${newModality})`;
+          }
+
+          const updateData = {
+            subtipo: newModality, // Save specific mode
+            cantidad: newQty,
+            precioUnitario: newPrice,
+            total: finalTotal,
+            detalles: finalDetail,
+            descripcion: finalDetail,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          };
+
+          window.ventasRef.doc(id).update(updateData).then(() => {
+            Swal.fire({
+              icon: 'success',
+              title: 'Registro Actualizado',
+              toast: true,
+              position: 'top-end',
+              showConfirmButton: false,
+              timer: 2000
+            });
+          }).catch(err => {
+            console.error(err);
+            Swal.fire('Error', 'No se pudo actualizar', 'error');
+          });
+        }
+      });
+
+    }).catch(err => {
+      loadingPopup.close();
+      console.error(err);
+      Swal.fire('Error', 'Error de conexión', 'error');
+    });
+  };
+
   function renderTableRows(tbody, data) {
     if (!data) return;
     tbody.innerHTML = data.map(registro => {
@@ -621,6 +814,22 @@ window.guardarVenta = function () {
       else if (tipoLc.includes('otr')) tipoClass = 'otros';
 
       let detalles = registro.detallesEntregas && registro.detallesEntregas.trim().length > 0 ? registro.detallesEntregas : registro.detalles || '-';
+
+      // --- MODALITY EXTRACTION (New Logic) ---
+      let modality = registro.subtipo || '-';
+
+      // If subtipo is missing but details has (Solo)/(Ayudante), extract it and clean details
+      if (registro.tipo === 'Camión' && modality === '-') {
+        if (detalles.match(/\(\s*Solo\s*\)/i)) modality = 'Solo';
+        if (detalles.match(/\(\s*Ayudante\s*\)/i) || detalles.match(/\(\s*Con\s+Ayudante\s*\)/i)) modality = 'Ayudante';
+      }
+
+      // Clean Details: Remove modality string from display since it has its own column now
+      detalles = detalles
+        .replace(/\(\s*Solo\s*\)/gi, '')
+        .replace(/\(\s*Ayudante\s*\)/gi, '')
+        .replace(/\(\s*Con\s+Ayudante\s*\)/gi, '')
+        .trim();
 
       // Simplify description for Route sales (Camión)
       if (registro.tipo === 'Camión' && detalles.startsWith('Ruta:')) {
@@ -665,15 +874,39 @@ window.guardarVenta = function () {
       } catch (e) { fechaStr = 'Hoy'; }
 
       return `
-        <tr class="venta-${tipoClass}" style="background:rgba(255,255,255,0.03); transition:transform 0.2s;">
-            <td data-label="Fecha" style="padding:16px; border-radius:12px 0 0 12px;">${fechaStr}</td>
-            <td data-label="Hora" style="padding:16px;">${registro.hora || '-'}</td>
-            <td data-label="Tipo" style="padding:16px;"><span class="service-type ${tipoClass}">${registro.tipo || '-'}</span></td>
-            <td data-label="Detalle" style="padding:16px; font-size:.95em; color:var(--text-main);">${detalles}</td>
-            <td data-label="Cant." style="padding:16px;" class="text-right">${cantidad}</td>
-            <td data-label="Precio" style="padding:16px;" class="text-right">${precioUnit}</td>
-            <td data-label="Total" style="padding:16px; border-radius:0 12px 12px 0;" class="text-right" style="font-weight:700; color:${color};">${textoTotal}</td>
-            <td data-label="Acción" style="padding:16px;"><button class="delete-btn" onclick="eliminarRegistro('${registro.id}')" style="background:none; border:none; color:var(--text-muted); cursor:pointer;"><i class="bi bi-trash"></i></button></td>
+        <tr class="venta-${tipoClass} history-card" onclick="this.classList.toggle('expanded')" style="cursor:pointer; background:rgba(255,255,255,0.03); transition:transform 0.2s;">
+            <td class="col-date" data-label="Fecha" style="padding:16px; border-radius:12px 0 0 12px;">${fechaStr}</td>
+            
+            <td class="col-time" data-label="Hora" style="padding:16px;">
+                <span class="mobile-label">Hora:</span>
+                <span class="cell-value">${registro.hora || '-'}</span>
+            </td>
+
+            <td class="col-type" data-label="Tipo" style="padding:16px;"><span class="service-type ${tipoClass}">${registro.tipo || '-'}</span></td>
+            
+            <td class="col-modality" data-label="Modalidad" style="padding:16px;">
+                <span class="mobile-label">Modalidad:</span>
+                <span class="cell-value" style="font-weight:600; color:var(--primary);">${modality}</span>
+            </td>
+
+            <td class="col-detail" data-label="Detalle" style="padding:16px; font-size:.95em; color:var(--text-main);">${detalles}</td>
+            
+            <td class="col-qty" data-label="Cant." style="padding:16px;" class="text-right">
+                <span class="mobile-label">Cant:</span>
+                <span class="cell-value">${cantidad}</span>
+            </td>
+            
+            <td class="col-price" data-label="Precio" style="padding:16px;" class="text-right">
+                <span class="mobile-label">Precio:</span>
+                <span class="cell-value">${precioUnit}</span>
+            </td>
+
+            <td class="col-total" data-label="Total" style="padding:16px; border-radius:0 12px 12px 0;" class="text-right" style="font-weight:700; color:${color};">${textoTotal}</td>
+            
+            <td class="col-actions" style="padding:16px;">
+                <button class="edit-btn" onclick="event.stopPropagation(); editarRegistro('${registro.id}')" style="background:none; border:none; cursor:pointer; margin-right:8px;"><i class="bi bi-pencil-square"></i></button>
+                <button class="delete-btn" onclick="event.stopPropagation(); eliminarRegistro('${registro.id}')" style="background:none; border:none; color:var(--text-muted); cursor:pointer;"><i class="bi bi-trash"></i></button>
+            </td>
           </tr >
         `;
 
@@ -750,8 +983,32 @@ window.guardarVenta = function () {
 
           if (r.tipo === 'Local') totalLocal += qty;
           if (r.tipo === 'Delivery') totalDelivery += qty;
-          if (r.tipo === 'Camión') totalCamion += qty;
+          // if (r.tipo === 'Camión') totalCamion += qty; // Removido: Se calcula quincenalmente abajo
           if (r.tipo === 'Otros') totalOtro += qty;
+        }
+      });
+    }
+
+    // --- CÁLCULO CAMIÓN (Corte Quincenal: 1-15 y 16-Fin) ---
+    if (window.allRecentVentas) {
+      const now = new Date();
+      const curDay = now.getDate();
+      const startDay = curDay > 15 ? 16 : 1;
+
+      // Inicio del periodo (00:00:00)
+      const startDate = new Date(now.getFullYear(), now.getMonth(), startDay);
+      startDate.setHours(0, 0, 0, 0);
+
+      window.allRecentVentas.forEach(r => {
+        if (r.tipo === 'Camión') {
+          let d = null;
+          if (r.createdAt && r.createdAt.seconds) d = new Date(r.createdAt.seconds * 1000);
+          else if (r.timestamp) d = new Date(r.timestamp);
+
+          // Si la venta es de este periodo, sumar
+          if (d && d >= startDate) {
+            totalCamion += (Number(r.cantidad) || 0);
+          }
         }
       });
     }
@@ -794,7 +1051,15 @@ window.guardarVenta = function () {
 
     // Update UI
     if (document.getElementById('dashTotal')) {
-      document.getElementById('dashTotal').textContent = formatCurrency(totalDinero);
+      const dashTotalEl = document.getElementById('dashTotal');
+      dashTotalEl.textContent = formatCurrency(totalDinero);
+
+      // RED if negative, GREEN if positive
+      if (totalDinero < 0) {
+        dashTotalEl.style.color = '#ff7675'; // Red (matching expenses)
+      } else {
+        dashTotalEl.style.color = '#2ecc71'; // Original Green
+      }
 
       // Growth Indicator (Money)
       const diffMoney = calculateDailyChange(totalDinero, 'money');
@@ -1232,8 +1497,8 @@ window.guardarVenta = function () {
 
   function getFechaFromId(registro) {
     if (registro.timestamp) return new Date(registro.timestamp);
-    // Fallback: If no timestamp, ID might be small (legacy).
-    // Assume it belongs to TODAY (or the current session context).
+    if (registro.fecha) return new Date(registro.fecha);
+    if (registro.createdAt && registro.createdAt.toDate) return registro.createdAt.toDate();
     return new Date();
   }
 
@@ -1403,16 +1668,20 @@ window.guardarVenta = function () {
       // cargarDesdeStorage(); // Disabled for Cloud Cloud
 
       // Setup Realtime Listener
-      // Setup Realtime Listener
       // Only listen for recent items to avoid reading entire DB history
-      // We filter by "today" in client, but limit query to recent 500
-      ventasRef.orderBy("createdAt", "desc").limit(500).onSnapshot((snapshot) => {
+      // We filter by "today" in client, but limit query to recent 1500 to cover fortnight counters
+      ventasRef.orderBy("createdAt", "desc").limit(1500).onSnapshot((snapshot) => {
         console.log("📡 Nuevo snapshot de Firestore");
         ventasDelDia = [];
         allRecentVentas = [];
 
-        // Strict "Today" Filter
-        const todayStr = new Date().toDateString();
+        // Strict "Today" Filter (Day/Month/Year)
+        const now = new Date();
+        const tDay = now.getDate();
+        const tMonth = now.getMonth();
+        const tYear = now.getFullYear();
+
+
 
         snapshot.forEach((doc) => {
           const data = doc.data();
@@ -1421,24 +1690,12 @@ window.guardarVenta = function () {
           // Store raw history
           const role = window.currentUserRole;
 
-          // CAMION EXCLUSIVE HISTORY LOGIC
-          // If role is 'camion', only include 'Camión' records AND 'Gasto' records? 
-          // User said: "vea sus movimientos". Usually means their sales and filtered expenses?
-          // Or just allow all Gastos (simpler)? 
-          // Restriction: "camion ve camion y gastos".
-          // Let's filter 'allRecentVentas' here correctly.
-
           let addToHistory = true;
           if (role === 'camion') {
             if (registro.tipo !== 'Camión' && registro.tipo !== 'Gasto') {
               addToHistory = false;
             }
           }
-          // Planta logic? "solo puede ver planta..."
-          // If we want to hide Camion data from Planta?
-          // User didn't strictly say "hide history from planta", but implies RBAC.
-          // Only Camion was explicit about "historial exclusivo".
-          // I'll stick to Camion restriction for now.
 
           if (addToHistory) {
             allRecentVentas.push(registro);
@@ -1447,19 +1704,27 @@ window.guardarVenta = function () {
           // Dashboard Filter: Only Today
           let shouldInclude = false;
 
-          // Case 1: Pending write (createdAt is null) -> Assume it's happening NOW (Today)
           if (data.createdAt === null) {
+            // Pending local write -> Include (assume recent)
             shouldInclude = true;
-          }
-          // Case 2: Has createdAt -> Check date
-          else if (data.createdAt) {
+          } else if (data.createdAt) {
+            // Firestore Timestamp
             const d = new Date(data.createdAt.seconds * 1000);
-            if (d.toDateString() === todayStr) shouldInclude = true;
-          }
-          // Case 3: Fallback legacy 'fecha'
-          else if (data.fecha) {
+            if (d.getDate() === tDay && d.getMonth() === tMonth && d.getFullYear() === tYear) {
+              shouldInclude = true;
+            }
+          } else if (data.timestamp) {
+            // Fallback for number timestamp
+            const d = new Date(data.timestamp);
+            if (d.getDate() === tDay && d.getMonth() === tMonth && d.getFullYear() === tYear) {
+              shouldInclude = true;
+            }
+          } else if (data.fecha) {
+            // Legacy String
             const d = new Date(data.fecha);
-            if (d.toDateString() === todayStr) shouldInclude = true;
+            if (d.getDate() === tDay && d.getMonth() === tMonth && d.getFullYear() === tYear) {
+              shouldInclude = true;
+            }
           }
 
           if (shouldInclude) {
@@ -1646,7 +1911,20 @@ window.guardarVenta = function () {
       .then(snapshot => {
         if (!snapshot.empty) {
           const data = snapshot.docs[0].data();
-          inputAyer.value = data.medidorActual;
+          const inputAyer = document.getElementById('prodMedidorAyer');
+          if (inputAyer) {
+            inputAyer.value = data.medidorActual;
+
+            // LOCK LOGIC: Allow only Admin to edit pre-filled values
+            const role = window.currentUserRole || 'user';
+            // Wait for role to be set if it's undefined (rare race condition safeguard)
+            if (role !== 'admin') {
+              inputAyer.disabled = true;
+              inputAyer.title = "🔒 Bloqueado (Solo Admin puede editar)";
+              inputAyer.style.cursor = "not-allowed";
+              inputAyer.style.opacity = "0.7";
+            }
+          }
           calcularProduccion();
           // Force UI update for stock
           setTimeout(actualizarUI, 500);
@@ -1809,9 +2087,20 @@ window.guardarVenta = function () {
   // --- 📱 MOBILE OPTIMIZATIONS (PTR & RESUME) ---
 
   // 1. Auto-Reconnect on Resume (App Switching)
+  // 1. Auto-Reconnect on Resume (App Switching) & Date Check
+  window.lastAppDate = window.lastAppDate || new Date().toDateString();
+
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-      console.log("🔄 App resumed - forcing sync...");
+      console.log("🔄 App resumed - checking status...");
+
+      // Check for Date Change (Overnight Fix)
+      const currentDate = new Date().toDateString();
+      if (window.lastAppDate && window.lastAppDate !== currentDate) {
+        console.log("📅 New day detected! Reloading app for fresh data...");
+        window.location.reload();
+        return; // Reload will happen
+      }
 
       // Force Firestore Network Reconnection
       rutaRef.firestore.disableNetwork().then(() => {
@@ -2091,4 +2380,13 @@ window.guardarVenta = function () {
       }
     }
   }
+})();
+
+// --- DEBUG DATE FILTER ---
+// Temporary log to diagnose why user sees yesterday's data
+(function () {
+  const today = new Date().toDateString();
+  console.log("📅 SYSTEM DATE CHECK:");
+  console.log("Current Browser Date:", today);
+  console.log("Current Browser Full:", new Date().toString());
 })();

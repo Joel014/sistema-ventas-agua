@@ -1349,3 +1349,1196 @@ label {
 .swal2-container {
     z-index: 20000 !important;
 }
+
+/* --- Modern Reports Filters (Step 4357) --- */
+.filter-pills-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    overflow-x: auto;
+    padding-bottom: 5px;
+    /* Space for scrollbar if any */
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE/Edge */
+    flex-wrap: nowrap;
+    /* Force single line */
+}
+
+.filter-pills-row::-webkit-scrollbar {
+    display: none;
+    /* Chrome/Safari */
+}
+
+.filter-pill {
+    white-space: nowrap;
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.filter-pill:hover {
+    background: var(--bg-lighter);
+    color: var(--text-main);
+    border-color: var(--text-muted);
+}
+
+.filter-pill.active {
+    background: linear-gradient(135deg, var(--primary) 0%, #0099cc 100%);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 4px 10px rgba(0, 194, 255, 0.3);
+}
+
+.date-range-picker {
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* --- Mobile History Cards (Responsive Table) --- */
+@media (max-width: 768px) {
+
+    /* Hide Table Header */
+    #tablaRegistros thead {
+        display: none;
+    }
+
+    /* Card Style for Rows */
+    #tablaRegistros tbody tr {
+        display: block;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        margin-bottom: 12px;
+        padding: 12px;
+        position: relative;
+    }
+
+    /* Flex Layout for Cells */
+    #tablaRegistros td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 4px 0;
+        border: none !important;
+        font-size: 14px;
+        color: var(--text-muted);
+    }
+
+    #tablaRegistros td strong {
+        color: var(--text-main);
+    }
+
+    /* Identifying Cells */
+    /* Assumes order: ID, User, Type, Detail, Qty, Total, Actions */
+    /* We need to use nth-child or classes. We will add classes in JS renderTableRows */
+
+    /* COLLAPSED STATE (Default) */
+    /* Hide: ID, User, Qty, Actions */
+    /* Show: Type (Icon), Detail, Total, Date (if added) */
+
+    .history-card .col-id,
+    .history-card .col-user,
+    .history-card .col-qty,
+    .history-card .col-actions,
+    .history-card .col-delete {
+        display: none !important;
+    }
+
+    /* Special Layout for Header Row in Card (Type + Date + Total) */
+    .history-card .col-type {
+        order: 1;
+        width: 100%;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--text-main);
+        display: flex !important;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .history-card .col-detail {
+        order: 2;
+        width: 100%;
+        margin-bottom: 8px;
+        color: var(--text-muted);
+        display: block !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .history-card .col-total {
+        order: 3;
+        font-size: 1.1em;
+        font-weight: bold;
+        color: var(--success);
+        display: block !important;
+    }
+
+    .history-card .col-date {
+        order: 4;
+        font-size: 0.85em;
+        display: block !important;
+    }
+
+    /* Trigger Button */
+    .card-expand-btn {
+        display: block !important;
+        /* Show only on mobile */
+        position: absolute;
+        bottom: 12px;
+        right: 12px;
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        color: var(--text-main);
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.3s;
+    }
+
+    /* EXPANDED STATE */
+    .history-card.expanded .col-id,
+    .history-card.expanded .col-user,
+    .history-card.expanded .col-qty,
+    .history-card.expanded .col-actions,
+    .history-card.expanded .col-delete {
+        display: flex !important;
+        order: 10;
+        border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+        padding-top: 8px !important;
+        margin-top: 4px;
+    }
+
+    .history-card.expanded .col-detail {
+        white-space: normal;
+        /* Wrap text */
+    }
+
+    .history-card.expanded .card-expand-btn {
+        transform: rotate(180deg);
+        background: var(--primary);
+    }
+}
+
+.card-expand-btn {
+    display: none;
+}
+
+/* Hide on Desktop */
+
+/* --- Fix Mobile History Visibility (Step 4528) --- */
+@media (max-width: 768px) {
+
+    /* Explicitly hide extra columns on mobile default view */
+    .history-card .col-time,
+    .history-card .col-price,
+    .history-card .col-qty,
+    .history-card .col-modality {
+        display: none !important;
+    }
+
+    /* Handle Actions Column: visible container, but hide delete button by default */
+    .history-card .col-actions {
+        display: block !important;
+        /* Must be visible for absolute button */
+        padding: 0 !important;
+        /* Reset padding to avoid spacing issues */
+        height: 0;
+        /* Minimal height */
+        overflow: visible;
+        /* Allow button to overflow */
+    }
+
+    .history-card .col-actions .delete-btn {
+        display: none !important;
+        /* Hide Delete Button */
+    }
+
+    /* EXPANDED STATE overrides */
+    .history-card.expanded .col-time,
+    .history-card.expanded .col-price,
+    .history-card.expanded .col-qty,
+    .history-card.expanded .col-modality {
+        display: flex !important;
+        order: 10;
+        width: 100%;
+        justify-content: space-between;
+        margin-top: 4px;
+        color: var(--text-muted);
+    }
+
+    /* Place Modality below Time (Time is usually top of expanded list) */
+    .history-card.expanded .col-modality {
+        order: 10 !important;
+        /* Same as others, but we rely on DOM order in JS. Or give it 11 if we want it after? 
+           If time is 10, modality 11, it will be below time.
+        */
+        order: 10;
+    }
+
+    .history-card.expanded .col-actions {
+        height: auto !important;
+        padding: 12px !important;
+        margin-top: 8px;
+        order: 12;
+        display: flex !important;
+        justify-content: flex-end;
+        /* Align delete button */
+    }
+
+    .history-card.expanded .col-actions .delete-btn {
+        display: inline-block !important;
+        /* Show Delete Button */
+        background: rgba(231, 76, 60, 0.1) !important;
+        color: #e74c3c !important;
+        padding: 8px 16px !important;
+        border-radius: 8px !important;
+    }
+
+    /* Ensure Expand Button stays visible */
+    .history-card .card-expand-btn {
+        z-index: 10;
+    }
+}
+
+/* --- Force Mobile History Visibility (Stronger Selector) --- */
+@media (max-width: 768px) {
+
+    /* Target via TR ID or specific class to override any flex rules */
+    table#tablaRegistros tr.history-card td.col-time,
+    table#tablaRegistros tr.history-card td.col-price,
+    table#tablaRegistros tr.history-card td.col-qty {
+        display: none !important;
+    }
+
+    /* Actions Column needs to be 'visible' but empty/hidden content */
+    table#tablaRegistros tr.history-card td.col-actions {
+        display: block !important;
+        height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        position: static;
+        /* Let the absolute button work relative to TR */
+    }
+
+    /* Hide the Delete Button specifically inside the collapsed state */
+    table#tablaRegistros tr.history-card:not(.expanded) td.col-actions .delete-btn {
+        display: none !important;
+    }
+}
+
+/* --- FINAL FIX Mobile History (Step 4552) --- */
+@media (max-width: 768px) {
+
+    /* Ensure the table cell ITSELF is hidden, not just content */
+    #tablaRegistros tr.history-card .col-time,
+    #tablaRegistros tr.history-card .col-price,
+    #tablaRegistros tr.history-card .col-qty {
+        display: none !important;
+    }
+
+    /* Actions Column: Hide container completely in collapsed state */
+    /* Wait, if we hide the container, we hide the expand button if it is inside? */
+    /* Yes. We moved the expand button inside .col-actions in JS. */
+    /* So .col-actions MUST be visible. */
+
+    #tablaRegistros tr.history-card .col-actions {
+        display: block !important;
+        position: absolute;
+        bottom: 12px;
+        right: 12px;
+        width: 40px;
+        height: 40px;
+        padding: 0 !important;
+        border: none !important;
+        background: transparent !important;
+        pointer-events: none;
+        /* Let clicks pass through if needed, but button needs events */
+    }
+
+    /* Re-enable pointer events for the buttons inside */
+    #tablaRegistros tr.history-card .col-actions button {
+        pointer-events: auto;
+    }
+
+    /* Hide Delete Button explicitly in collapsed state */
+    #tablaRegistros tr.history-card:not(.expanded) .col-actions .delete-btn {
+        display: none !important;
+    }
+
+    /* Style the Expand Button to appear correctly */
+    #tablaRegistros tr.history-card .card-expand-btn {
+        display: flex !important;
+        width: 32px;
+        height: 32px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-main);
+        cursor: pointer;
+    }
+
+    /* EXPANDED STATE Overrides */
+    #tablaRegistros tr.history-card.expanded {
+        padding-bottom: 50px;
+        /* Make room for actions at bottom */
+    }
+
+    #tablaRegistros tr.history-card.expanded .col-actions {
+        position: relative;
+        bottom: auto;
+        right: auto;
+        width: 100%;
+        height: auto !important;
+        display: flex !important;
+        justify-content: flex-end;
+        gap: 10px;
+        padding-top: 10px !important;
+        margin-top: 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+
+    #tablaRegistros tr.history-card.expanded .col-actions .delete-btn {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        background: rgba(231, 76, 60, 0.2) !important;
+        color: #e74c3c !important;
+        padding: 8px 16px !important;
+        border-radius: 8px;
+        height: 36px;
+    }
+}
+
+/* --- ULTIMATE FIX for Mobile History (Step 4574) --- */
+@media (max-width: 768px) {
+
+    /* 1. Remove pseudo-element CONTENT for Actions column to hide "Acción" text */
+    #tablaRegistros tr.history-card td.col-actions:before {
+        content: none !important;
+        display: none !important;
+    }
+
+    /* 2. Positioning: Reset Actions Column to be a clickable overlay or contained box */
+    #tablaRegistros tr.history-card .col-actions {
+        display: flex !important;
+        position: absolute;
+        bottom: 8px;
+        /* Slightly higher from bottom edge */
+        right: 8px;
+        width: auto !important;
+        height: auto !important;
+        padding: 0 !important;
+        background: transparent !important;
+        z-index: 5;
+    }
+
+    /* 3. Expand Button Styling */
+    .history-card .card-expand-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: var(--text-main);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+
+    /* 4. EXPANDED LOGIC - Force display of hidden columns */
+    /* Using generic sibling selector or precise targeting */
+
+    tr.history-card.expanded td.col-time,
+    tr.history-card.expanded td.col-price,
+    tr.history-card.expanded td.col-qty {
+        display: flex !important;
+        /* Make them visible */
+        width: 100%;
+        margin-top: 8px;
+        border-top: 1px dashed rgba(255, 255, 255, 0.1) !important;
+        padding-top: 8px !important;
+        color: var(--text-muted);
+        font-size: 0.9em;
+        /* Order them at the bottom */
+        order: 100;
+    }
+
+    tr.history-card.expanded .col-actions {
+        /* When expanded, move delete button to a visible spot */
+        position: relative !important;
+        bottom: auto !important;
+        right: auto !important;
+        width: 100% !important;
+        justify-content: space-between !important;
+        /* Spacing */
+        padding-top: 15px !important;
+        margin-top: 10px;
+        order: 200;
+        /* At very bottom */
+    }
+
+    /* Hide Delete Button when NOT expanded */
+    tr.history-card:not(.expanded) .delete-btn {
+        display: none !important;
+    }
+
+    /* Show Delete Button when Expanded */
+    tr.history-card.expanded .delete-btn {
+        display: inline-flex !important;
+        padding: 6px 12px;
+        background: rgba(231, 76, 60, 0.2);
+        color: #e74c3c;
+        border-radius: 6px;
+        font-size: 14px;
+        align-items: center;
+        gap: 5px;
+    }
+}
+
+/* --- FIX EXPAND VISIBILITY (Step 4584) --- */
+@media (max-width: 768px) {
+    /* WE MUST BEAT THE SPECIFICITY of the previous hide rule (table#tablaRegistros ...) */
+
+    table#tablaRegistros tr.history-card.expanded td.col-time,
+    table#tablaRegistros tr.history-card.expanded td.col-price,
+    table#tablaRegistros tr.history-card.expanded td.col-qty {
+        display: flex !important;
+        width: 100%;
+        justify-content: space-between;
+        /* Label left, value right */
+        margin-top: 4px;
+        padding: 8px 0 !important;
+        border-top: 1px dashed rgba(255, 255, 255, 0.1) !important;
+        color: var(--text-muted);
+        font-size: 0.9em;
+        order: 50;
+        /* Ensure order */
+    }
+
+    /* Add pseudo-label if missing (optional, but data-label is there) */
+    table#tablaRegistros tr.history-card.expanded td.col-time:before,
+    table#tablaRegistros tr.history-card.expanded td.col-price:before,
+    table#tablaRegistros tr.history-card.expanded td.col-qty:before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--text-muted);
+        margin-right: 10px;
+    }
+}
+
+/* --- Fix Expanded Layout (Side by Side) (Step 4592) --- */
+@media (max-width: 768px) {
+    /* Target the expanded rows specifically */
+
+    table#tablaRegistros tr.history-card.expanded td.col-time,
+    table#tablaRegistros tr.history-card.expanded td.col-price,
+    table#tablaRegistros tr.history-card.expanded td.col-qty {
+        display: flex !important;
+        flex-direction: row !important;
+        /* Force Horizontal */
+        justify-content: space-between !important;
+        /* Label Left, Value Right */
+        align-items: center !important;
+        width: 100% !important;
+        text-align: right !important;
+        /* Align content properly */
+    }
+
+    /* Ensure label is on left */
+    table#tablaRegistros tr.history-card.expanded td.col-time:before,
+    table#tablaRegistros tr.history-card.expanded td.col-price:before,
+    table#tablaRegistros tr.history-card.expanded td.col-qty:before {
+        /* Ensure content is treated as block/inline-block */
+        display: inline-block;
+        text-align: left;
+        margin-right: auto;
+        /* Push label to far left */
+    }
+}
+
+/* --- ULTIMATE ALIGNMENT FIX (Step 4600) --- */
+.mobile-label {
+    display: none;
+}
+
+/* Hide on Desktop */
+
+@media (max-width: 768px) {
+
+    /* 1. Force the cells to be BLOCK containers (or Flex Row) */
+    table#tablaRegistros tr.history-card.expanded td.col-time,
+    table#tablaRegistros tr.history-card.expanded td.col-price,
+    table#tablaRegistros tr.history-card.expanded td.col-qty {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        width: 100% !important;
+        text-align: left !important;
+        padding: 8px 0 !important;
+    }
+
+    /* 2. Style the Label (Left) */
+    .history-card.expanded .mobile-label {
+        display: inline-block !important;
+        font-weight: 600;
+        color: var(--text-muted);
+        min-width: 80px;
+        /* Consisten width */
+    }
+
+    /* 3. Style the Value (Right) */
+    .history-card.expanded .cell-value {
+        display: inline-block;
+        text-align: right;
+        margin-left: auto;
+        /* Push to right */
+        color: var(--text-main);
+    }
+
+    /* Remove pseudo-elements to prevent duplication/overlapping */
+    table#tablaRegistros tr.history-card.expanded td:before {
+        display: none !important;
+        content: none !important;
+    }
+}
+
+/* --- CLICKABLE CARD & DISAPPEAR FIX (Step 4611) --- */
+@media (max-width: 768px) {
+
+    /* 1. Ensure MAIN fields (Date, Type, Detail, Total) NEVER disappear */
+    /* They should be visible in both default and expanded states */
+    table#tablaRegistros tr.history-card td.col-date,
+    table#tablaRegistros tr.history-card td.col-type,
+    table#tablaRegistros tr.history-card td.col-detail,
+    table#tablaRegistros tr.history-card td.col-total {
+        display: flex !important;
+        /* or block depending on layout */
+        /* keep existing order or layout */
+    }
+
+    /* 2. Style the Hidden Fields (Time, Qty, Price) */
+    /* Default: Hidden */
+    table#tablaRegistros tr.history-card:not(.expanded) td.col-time,
+    table#tablaRegistros tr.history-card:not(.expanded) td.col-qty,
+    table#tablaRegistros tr.history-card:not(.expanded) td.col-price {
+        display: none !important;
+    }
+
+    /* Expanded: Visible & Styled as rows */
+    table#tablaRegistros tr.history-card.expanded td.col-time,
+    table#tablaRegistros tr.history-card.expanded td.col-qty,
+    table#tablaRegistros tr.history-card.expanded td.col-price {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        width: 100% !important;
+        padding: 8px 0 !important;
+        border-top: 1px dashed rgba(255, 255, 255, 0.05) !important;
+        margin-top: 4px;
+        order: 50;
+        /* Ensure they appear BELOW the main content */
+    }
+
+    /* 3. Actions Column (Delete button) */
+    table#tablaRegistros tr.history-card .col-actions {
+        display: none !important;
+        /* Hide normally */
+    }
+
+    table#tablaRegistros tr.history-card.expanded .col-actions {
+        display: flex !important;
+        justify-content: flex-end;
+        width: 100%;
+        margin-top: 15px;
+        order: 100;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    table#tablaRegistros tr.history-card.expanded .delete-btn {
+        display: inline-flex !important;
+        background: rgba(231, 76, 60, 0.15) !important;
+        color: #e74c3c !important;
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 1px solid rgba(231, 76, 60, 0.3) !important;
+        font-weight: 500;
+        font-size: 14px;
+        gap: 8px;
+    }
+
+    /* Add text "Eliminar" to button when expanded */
+    table#tablaRegistros tr.history-card.expanded .delete-btn:after {
+        content: "Eliminar Venta";
+    }
+
+    /* Active State indicator */
+    table#tablaRegistros tr.history-card.expanded {
+        background: rgba(255, 255, 255, 0.08) !important;
+        /* Highlight expanded */
+        border: 1px solid var(--primary) !important;
+    }
+}
+
+/* --- FINAL FORCE CSS (Buttons & Layout) --- */
+@media (max-width: 768px) {
+
+    /* FORCE BUTTON VISIBILITY & STYLE */
+    html body table#tablaRegistros tr.history-card.expanded td.col-actions .edit-btn,
+    html body table#tablaRegistros tr.history-card.expanded td.col-actions .delete-btn {
+        display: inline-flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 8px !important;
+        padding: 10px 16px !important;
+        border-radius: 8px !important;
+        font-weight: 700 !important;
+        font-size: 14px !important;
+        text-transform: uppercase !important;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2) !important;
+        min-width: 100px !important;
+        height: 40px !important;
+    }
+
+    /* EDIT BUTTON COLOR */
+    html body table#tablaRegistros tr.history-card.expanded td.col-actions .edit-btn {
+        background: #0984e3 !important;
+        /* Solid Blue */
+        color: white !important;
+        border: none !important;
+    }
+
+    /* DELETE BUTTON COLOR */
+    html body table#tablaRegistros tr.history-card.expanded td.col-actions .delete-btn {
+        background: #d63031 !important;
+        /* Solid Red */
+        color: white !important;
+        border: none !important;
+    }
+
+    /* ICONS */
+    html body table#tablaRegistros tr.history-card.expanded .edit-btn i,
+    html body table#tablaRegistros tr.history-card.expanded .delete-btn i {
+        font-size: 1.2em !important;
+        margin-right: 5px !important;
+    }
+
+    /* TEXT LABELS (Ensure they appear) */
+    html body table#tablaRegistros tr.history-card.expanded .edit-btn:after {
+        content: " EDITAR " !important;
+    }
+
+    html body table#tablaRegistros tr.history-card.expanded .delete-btn:after {
+        content: " ELIMINAR " !important;
+    }
+
+    /* HIDE when NOT expanded (Crucial) */
+    html body table#tablaRegistros tr.history-card:not(.expanded) .edit-btn,
+    html body table#tablaRegistros tr.history-card:not(.expanded) .delete-btn {
+        display: none !important;
+    }
+
+    /* FIX LAYOUT ALIGNMENT */
+    html body table#tablaRegistros tr.history-card td.col-detail {
+        text-align: left !important;
+        padding-left: 0 !important;
+    }
+}
+
+/* --- ULTIMATE REFACTOR: Mobile History Card (Step 4792) --- */
+@media (max-width: 768px) {
+
+    /* 1. KILL ALL DATA-LABEL PSEUDO ELEMENTS */
+    /* This overrides any previous rule adding content: attr(data-label) */
+    #tablaRegistros td:before,
+    #tablaRegistros td::before {
+        content: none !important;
+        display: none !important;
+    }
+
+    /* 2. RESET TABLE DISPLAY TO BLOCK/FLEX */
+    table#tablaRegistros,
+    table#tablaRegistros tbody,
+    table#tablaRegistros tr.history-card {
+        display: block !important;
+        width: 100% !important;
+    }
+
+    /* 3. CARD CONTAINER STYLE */
+    table#tablaRegistros tr.history-card {
+        background: rgba(255, 255, 255, 0.05) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 16px !important;
+        margin-bottom: 12px !important;
+        padding: 16px !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+
+        /* Flex Column Layout */
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+        position: relative;
+    }
+
+    /* 4. RESET CELLS */
+    table#tablaRegistros tr.history-card td {
+        display: block !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        text-align: left !important;
+        background: transparent !important;
+    }
+
+    /* --- LAYOUT ORDERING & STYLING --- */
+
+    /* ROW 1: HEADER (Type + Date) */
+    /* We'll float Type Left and Date Right using a hacks or absolute? 
+       Better: Use Flex order and sizing */
+
+    /* TYPE: Order 1 */
+    table#tablaRegistros tr.history-card td.col-type {
+        order: 1;
+        display: flex !important;
+        align-items: center;
+        margin-bottom: 4px !important;
+    }
+
+    .service-type {
+        font-size: 0.9em;
+        padding: 4px 10px;
+        border-radius: 20px;
+    }
+
+    /* DATE: Order 2 - Position Absolute Top Right for perfect alignment */
+    table#tablaRegistros tr.history-card td.col-date {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        width: auto !important;
+        font-size: 0.85em;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    /* ROW 2: DETAIL (Order 3) */
+    table#tablaRegistros tr.history-card td.col-detail {
+        order: 3;
+        font-size: 1.1em;
+        font-weight: 500;
+        color: #fff;
+        margin-bottom: 8px !important;
+        line-height: 1.4;
+    }
+
+    /* ROW 3: HIDDEN INFO (Time, Qty, Price) - Order 4 */
+    /* Only visible when expanded */
+
+    /* Container for these stats */
+    table#tablaRegistros tr.history-card td.col-time,
+    table#tablaRegistros tr.history-card td.col-qty,
+    table#tablaRegistros tr.history-card td.col-price {
+        order: 4;
+        font-size: 0.9em;
+        color: var(--text-muted);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        /* Separator lines */
+        padding: 6px 0 !important;
+    }
+
+    /* Hide by default */
+    table#tablaRegistros tr.history-card:not(.expanded) td.col-time,
+    table#tablaRegistros tr.history-card:not(.expanded) td.col-qty,
+    table#tablaRegistros tr.history-card:not(.expanded) td.col-price {
+        display: none !important;
+    }
+
+    /* Make them look good when expanded */
+    table#tablaRegistros tr.history-card.expanded td.col-time,
+    table#tablaRegistros tr.history-card.expanded td.col-qty,
+    table#tablaRegistros tr.history-card.expanded td.col-price {
+        display: flex !important;
+        justify-content: space-between;
+    }
+
+    /* Ensure internal spans (label/value) work */
+    .mobile-label {
+        color: var(--text-muted);
+    }
+
+    .cell-value {
+        color: var(--text-main);
+        font-weight: 600;
+    }
+
+
+    /* ROW 4: TOTAL (Order 5) - Always visible at bottom of content */
+    table#tablaRegistros tr.history-card td.col-total {
+        order: 5;
+        margin-top: 4px !important;
+        text-align: right !important;
+        /* Right aligned */
+        font-size: 1.4em !important;
+        font-weight: 800;
+        color: var(--success);
+        /* Add a top border if expanded to separate from details */
+    }
+
+    table#tablaRegistros tr.history-card.expanded td.col-total {
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding-top: 8px !important;
+        margin-top: 8px !important;
+    }
+
+    /* ROW 5: ACTIONS (Order 6) */
+    table#tablaRegistros tr.history-card td.col-actions {
+        order: 6;
+        width: 100% !important;
+        margin-top: 12px;
+    }
+
+    /* Hide actions container if closed */
+    table#tablaRegistros tr.history-card:not(.expanded) td.col-actions {
+        display: none !important;
+    }
+
+    /* Show flex row if expanded */
+    table#tablaRegistros tr.history-card.expanded td.col-actions {
+        display: flex !important;
+        gap: 12px;
+        justify-content: space-between;
+    }
+
+    /* Force Buttons to Fill width */
+    table#tablaRegistros tr.history-card.expanded .edit-btn,
+    table#tablaRegistros tr.history-card.expanded .delete-btn {
+        flex: 1;
+        justify-content: center;
+    }
+}
+
+/* --- ULTIMATE REFACTOR v2: Centering & Cleanup (Step 4858) --- */
+@media (max-width: 768px) {
+
+    /* 1. FORCE KILL ALL LABELS AGAIN (Specific to #tablaRegistros) */
+    html body #tablaRegistros td:before,
+    html body #tablaRegistros td::before,
+    html body #tablaRegistros tr.history-card td:before {
+        content: "" !important;
+        display: none !important;
+    }
+
+    /* 2. CENTER ALIGNMENT FOR DETAIL & TOTAL & TYPE */
+    /* Type (Icon + Text) -> Center explicitly */
+    table#tablaRegistros tr.history-card td.col-type {
+        justify-content: flex-start;
+        /* Keep Type on Left as per image, or Center? Img showed Gasto Left. */
+        /* User said "la otra informacion no está sentrada" in expanded view.
+           In expanded view img: "Camión" was centered. "Fatima" was passed left.
+           If user wants "Fatima" centered: */
+    }
+
+    /* CENTER DETAIL TEXT */
+    table#tablaRegistros tr.history-card td.col-detail {
+        text-align: center !important;
+        justify-content: center !important;
+        display: flex !important;
+        width: 100%;
+    }
+
+    /* CENTER TOTAL TEXT */
+    table#tablaRegistros tr.history-card td.col-total {
+        text-align: center !important;
+        justify-content: center !important;
+        display: flex !important;
+        width: 100%;
+        margin-top: 8px !important;
+    }
+
+    /* COLLAPSED STATE FIXES */
+    /* Ensure clean single line for Type/Date */
+    table#tablaRegistros tr.history-card td.col-date {
+        /* Keep Absolute Right */
+        top: 16px;
+        right: 16px;
+    }
+}
+
+/* --- FINAL CENTERING (Type & Date) Step 4889 --- */
+@media (max-width: 768px) {
+
+    /* 1. TYPE (Icon): Center It */
+    table#tablaRegistros tr.history-card td.col-type {
+        order: 1 !important;
+        width: 100% !important;
+        justify-content: center !important;
+        /* CENTERED */
+        margin-bottom: 4px !important;
+        display: flex !important;
+    }
+
+    /* 2. DATE: Remove Absolute, Center It */
+    table#tablaRegistros tr.history-card td.col-date {
+        position: relative !important;
+        /* No longer absolute */
+        top: auto !important;
+        right: auto !important;
+        order: 2 !important;
+        /* Below Type */
+        width: 100% !important;
+        text-align: center !important;
+        /* CENTERED */
+        display: block !important;
+        margin-bottom: 8px !important;
+        color: var(--text-muted);
+        font-size: 0.85em;
+    }
+
+    /* 3. DETAIL: Keep Centered (Order 3) */
+    /* Already done in previous step */
+}
+
+/* --- ULTIMATE REFACTOR v3: Styling & Overflow (Step 4911) --- */
+@media (max-width: 768px) {
+
+    /* 1. OVERFLOW FIX: Ensure box-sizing and control width */
+    html body table#tablaRegistros tr.history-card {
+        width: calc(100% - 2px) !important;
+        /* Subtract potential borders */
+        margin-left: 1px !important;
+        margin-right: 1px !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 2. COLOR CODING (Borders & Tints) */
+
+    /* CAMION: Blue/Cyan */
+    table#tablaRegistros tr.history-card.venta-camion {
+        border-left: 4px solid #0984e3 !important;
+        background: rgba(9, 132, 227, 0.05) !important;
+    }
+
+    /* GASTO: Red */
+    table#tablaRegistros tr.history-card.venta-gasto {
+        border-left: 4px solid #d63031 !important;
+        background: rgba(214, 48, 49, 0.05) !important;
+    }
+
+    /* LOCAL: Green */
+    table#tablaRegistros tr.history-card.venta-local {
+        border-left: 4px solid #00b894 !important;
+        background: rgba(0, 184, 148, 0.05) !important;
+    }
+
+    /* DELIVERY: Orange */
+    table#tablaRegistros tr.history-card.venta-delivery {
+        border-left: 4px solid #e17055 !important;
+        background: rgba(225, 112, 85, 0.05) !important;
+    }
+
+    /* MIXTO: Purple */
+    table#tablaRegistros tr.history-card.venta-mixto {
+        border-left: 4px solid #6c5ce7 !important;
+        background: rgba(108, 92, 231, 0.05) !important;
+    }
+
+
+    /* 3. RED TOTAL FOR GASTOS (As requested) */
+    table#tablaRegistros tr.history-card.venta-gasto td.col-total {
+        color: #ff7675 !important;
+        /* Lighter Red for dark theme readability */
+        font-weight: 900 !important;
+    }
+
+    /* 4. DEFAULT COLOR FOR OTHER TOTALS */
+    /* Ensure other totals remain green */
+    table#tablaRegistros tr.history-card:not(.venta-gasto) td.col-total {
+        color: var(--success);
+    }
+}
+
+/* --- DESKTOP TABLE & BUTTON FIXES (Step 4937) --- */
+
+/* 1. Global Edit/Delete Button Styles (Desktop + Mobile Base) */
+.edit-btn,
+.delete-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+/* Specific Colors */
+.edit-btn {
+    background: rgba(0, 194, 255, 0.1);
+    color: var(--primary);
+    border: 1px solid transparent;
+}
+
+.edit-btn:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.delete-btn {
+    background: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+    border: 1px solid transparent;
+}
+
+.delete-btn:hover {
+    background: #e74c3c;
+    color: white;
+}
+
+/* 2. Text Alignment Fix for Table Headers */
+/* Ensure header alignment matches body alignment (Left by default, Right for numbers) */
+#tablaRegistros th:nth-child(5),
+/* Cant */
+#tablaRegistros th:nth-child(6),
+/* Precio */
+#tablaRegistros th:nth-child(7)
+
+/* Total */
+    {
+    text-align: right !important;
+}
+
+/* Ensure body matches (renderTableRows uses .text-right class, but just in case) */
+#tablaRegistros td:nth-child(5),
+#tablaRegistros td:nth-child(6),
+#tablaRegistros td:nth-child(7) {
+    text-align: right !important;
+}
+
+/* 3. Action Column Center */
+#tablaRegistros th:nth-child(8),
+#tablaRegistros td:nth-child(8) {
+    text-align: center !important;
+}
+
+/* --- BUTTON UPGRADE: Modern Edit Button (Step 5038) --- */
+@media (min-width: 769px) {
+
+    /* Only Desktop for "más bonito" request on web version */
+    .edit-btn {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+        color: white !important;
+        border: none !important;
+        padding: 8px 16px !important;
+        border-radius: 10px !important;
+        font-weight: 600 !important;
+        box-shadow: 0 4px 15px rgba(0, 194, 255, 0.3);
+        transition: transform 0.2s, box-shadow 0.2s;
+        text-transform: uppercase;
+        font-size: 12px !important;
+        letter-spacing: 0.5px;
+    }
+
+    .edit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 194, 255, 0.5);
+    }
+
+    .edit-btn i {
+        margin-right: 5px;
+    }
+
+    .edit-btn:after {
+        content: " Editar";
+        /* Add label */
+    }
+}
+
+/* --- BUTTON UPGRADE: Modern Delete Button (Step 5062) --- */
+@media (min-width: 769px) {
+    .delete-btn {
+        background: linear-gradient(135deg, #ff5f6d 0%, #ffc371 100%) !important;
+        /* Or a solid red gradient */
+        background: linear-gradient(135deg, #FF416C 0%, #FF4B2B 100%) !important;
+        color: white !important;
+        border: none !important;
+        padding: 8px 16px !important;
+        border-radius: 10px !important;
+        font-weight: 600 !important;
+        box-shadow: 0 4px 15px rgba(255, 75, 43, 0.3);
+        transition: transform 0.2s, box-shadow 0.2s;
+        text-transform: uppercase;
+        font-size: 12px !important;
+        letter-spacing: 0.5px;
+        margin-left: 8px;
+        /* Spacing from edit button */
+    }
+
+    .delete-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(255, 75, 43, 0.5);
+    }
+
+    .delete-btn i {
+        margin-right: 5px;
+    }
+
+    /* Add label text? Let's add it for consistency with Edit */
+    .delete-btn:after {
+        content: " Eliminar";
+    }
+}
+
+/* --- FINAL BUTTON POLISH: Size & Spacing (Retry Step 5074) --- */
+@media (min-width: 769px) {
+
+    /* SHARED STYLES FOR CONSISTENCY */
+    .edit-btn,
+    .delete-btn {
+        width: 100px !important;
+        /* Fixed width for uniformity */
+        justify-content: center !important;
+        margin: 0 8px !important;
+        /* Increased spacing between buttons */
+        display: inline-flex !important;
+        /* Ensure flex behavior */
+    }
+}

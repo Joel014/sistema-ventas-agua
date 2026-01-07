@@ -177,17 +177,17 @@ window.renderClientesList = function (listToRender = window.listaClientes) {
                       </div>
                   </div>
                   <div style="display:flex; gap:8px; align-items:center;">
-                    <div style="display:flex; flex-direction:column; gap:4px;">
-                        <button onclick="agregarARuta('${c.id}')" style="background:var(--primary); color:white; border:none; width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 4px 10px rgba(0,194,255,0.3);" title="Enviar a Ruta">
-                          <i class="bi bi-truck"></i>
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                        <button onclick="agregarARuta('${c.id}')" style="background:var(--primary); color:white; border:none; width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 4px 10px rgba(0,194,255,0.3);" title="Enviar a Ruta">
+                          <i class="bi bi-truck" style="font-size:18px;"></i>
                         </button>
                         <button onclick="gestionarUbicacion('${c.id}', ${c.lat || 'null'}, ${c.lng || 'null'})" 
                                 style="background:${c.lat ? 'rgba(0, 194, 255, 0.15)' : 'rgba(255,255,255,0.05)'}; 
                                        color:${c.lat ? 'var(--primary)' : 'var(--text-muted)'}; 
                                        border:${c.lat ? '1px solid var(--primary)' : '1px solid var(--border)'}; 
-                                       width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; cursor:pointer;" 
+                                       width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; cursor:pointer;" 
                                 title="${c.lat ? 'Gestionar Ubicación' : 'Fijar Ubicación GPS'}">
-                          <i class="bi ${c.lat ? 'bi-geo-alt-fill' : 'bi-geo-alt'}"></i>
+                          <i class="bi ${c.lat ? 'bi-geo-alt-fill' : 'bi-geo-alt'}" style="font-size:18px;"></i>
                         </button>
                     </div>
                     <div style="display:flex; flex-direction:column; gap:4px;">
@@ -356,7 +356,10 @@ window.renderRutaDia = function (rutaList = window.rutaDiaList) {
             <div style="display:flex; gap:10px; align-items:center; margin-top:5px;">
                 <div style="display:flex; align-items:center; background:rgba(0,0,0,0.2); border-radius:8px; padding:2px 8px; border:1px solid var(--border);">
                     <span style="font-size:12px; color:var(--text-muted); margin-right:5px;">Cant:</span>
-                    <input type="number" value="${item.cantidad || 1}" min="1" onchange="window.updateRutaCantidad('${item.id}', this.value)"
+                    <input type="number" value="${item.cantidad || 1}" min="1" 
+                        onfocus="if(this.value=='1') this.value=''" 
+                        onchange="window.updateRutaCantidad('${item.id}', this.value)"
+                        placeholder="1"
                         style="width:50px; background:none; border:none; color:white; font-weight:bold; text-align:center; font-size:14px;">
                 </div>
                 
@@ -389,8 +392,9 @@ window.togglePago = function (id, currentStatus) {
 
 window.updateRutaCantidad = function (id, qty) {
   const rutaRef = window.db.collection("ruta_dia");
-  if (qty < 1) qty = 1;
-  rutaRef.doc(id).update({ cantidad: parseInt(qty) });
+  let val = parseInt(qty);
+  if (isNaN(val) || val < 1) val = 1;
+  rutaRef.doc(id).update({ cantidad: val });
 }
 
 window.entregarPedido = function (id) {
@@ -681,9 +685,38 @@ window.fijarUbicacionCliente = function (id) {
         });
       }, (error) => {
         console.error(error);
-        let msg = "Error al obtener la ubicación.";
-        if (error.code === 1) msg = "Debes permitir el acceso al GPS para fijar la ubicación.";
-        Swal.fire('Error', msg, 'error');
+        if (error.code === 1) {
+          // Permission Denied - Show Help
+          Swal.fire({
+            title: '⚠️ Acceso GPS Bloqueado',
+            html: `
+              <div style="text-align:left; font-size:14px;">
+                <p>Para guardar la ubicación, necesitas dar permiso:</p>
+                <hr style="border:0; border-top:1px solid #eee; margin:10px 0;">
+                
+                <strong style="color:#333">📱 En Android (Chrome):</strong>
+                <ol style="margin-left:15px; margin-bottom:10px;">
+                  <li>Toca el candado 🔒 (barra de direcciones).</li>
+                  <li>Toca <strong>Permisos</strong>.</li>
+                  <li>Activa <strong>Ubicación/Location</strong>.</li>
+                </ol>
+
+                <strong style="color:#333">🍏 En iPhone (Safari):</strong>
+                <ol style="margin-left:15px; margin-bottom:10px;">
+                  <li>Ve a <strong>Ajustes</strong> del iPhone.</li>
+                  <li>Busca <strong>Safari</strong> > <strong>Ubicación</strong>.</li>
+                  <li>Selecciona <strong>Permitir</strong> o <strong>Al usarse</strong>.</li>
+                </ol>
+                
+                <p style="margin-top:10px; font-style:italic; font-size:12px; color:gray;">Si sigue fallando, asegúrate de que el GPS del teléfono esté encendido.</p>
+              </div>
+            `,
+            icon: 'warning',
+            confirmButtonText: 'Entendido'
+          });
+        } else {
+          Swal.fire('Error', 'No se pudo obtener la ubicación (GPS apagado o sin señal).', 'error');
+        }
       }, {
         enableHighAccuracy: true,
         timeout: 10000,

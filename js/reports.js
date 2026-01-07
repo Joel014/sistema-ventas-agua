@@ -439,3 +439,74 @@ window.filtrarHistorial = function () {
         }
     }
 }
+// --- 🚀 QUICK FILTERS LOGIC ---
+
+window.app = window.app || {};
+
+window.app.toggleCustomDate = function (btn) {
+    const panel = document.getElementById('customDatePanel');
+    const isHidden = panel.style.display === 'none';
+    panel.style.display = isHidden ? 'block' : 'none';
+
+    // Update button state
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+    if (isHidden && btn) btn.classList.add('active');
+};
+
+window.app.applyQuickFilter = function (type, btn) {
+    // 1. UI Updates
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    // Hide Custom Panel if open
+    const panel = document.getElementById('customDatePanel');
+    if (panel) panel.style.display = 'none';
+
+    // 2. Date Logic
+    const startInput = document.getElementById('reportStart');
+    const endInput = document.getElementById('reportEnd');
+    const today = new Date();
+
+    let start, end;
+
+    switch (type) {
+        case 'today':
+            start = new Date();
+            end = new Date();
+            break;
+        case 'yesterday':
+            start = new Date();
+            start.setDate(today.getDate() - 1);
+            end = new Date();
+            end.setDate(today.getDate() - 1);
+            break;
+        case 'week':
+            // Start of current week (Monday)
+            start = new Date();
+            const day = start.getDay() || 7; // Get current day (1-7, Mon-Sun)
+            if (day !== 1) start.setDate(today.getDate() - (day - 1));
+            end = new Date();
+            break;
+        case 'month':
+            start = new Date(today.getFullYear(), today.getMonth(), 1);
+            end = new Date();
+            break;
+    }
+
+    // Set Inputs (YYYY-MM-DD)
+    if (start && end) {
+        // Helper to format local date YYYY-MM-DD
+        const fmt = (d) => {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        };
+
+        if (startInput) startInput.value = fmt(start);
+        if (endInput) endInput.value = fmt(end);
+
+        // Trigger Filter
+        if (window.filtrarReporte) window.filtrarReporte();
+    }
+};
