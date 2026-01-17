@@ -1,7 +1,8 @@
-const CACHE_NAME = 'awa-v14';
+const CACHE_NAME = 'awa-v105';
 const ASSETS = [
     './',
     './index.html',
+    './menu.html',
     './css/main.css',
     './js/script.js',
     './js/auth.js',

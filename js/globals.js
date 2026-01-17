@@ -46,8 +46,6 @@ window.myTrendChart = null;
 window.gastosChartInstance = null;
 
 // Constants
-window.PRECIO_LOCAL = 25;
-window.PRECIO_CAMION = 30;
-window.PRECIO_DELIVERY = 35;
+// Prices handled by js/modules/config.js -> js/app.js
 window.rutaDiaList = [];
 window.rutaDiaList = [];

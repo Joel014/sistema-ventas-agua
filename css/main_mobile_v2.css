@@ -380,7 +380,7 @@ body {
 /* Dashboard Grid */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(2, 1fr) !important;
     /* Force 2 columns on Mobile */
     gap: 15px;
     margin-bottom: 24px;
@@ -799,168 +799,6 @@ label {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* WORK CALENDAR STYLES */
-
-.calendar-header {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    margin-bottom: 10px;
-}
-
-.calendar-header div {
-    text-align: center;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-muted);
-    padding: 5px;
-}
-
-.calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 8px;
-    margin-bottom: 10px;
-}
-
-.calendar-day {
-    aspect-ratio: 1;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 5px;
-    cursor: pointer;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    transition: all 0.2s;
-}
-
-.calendar-day:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: var(--primary);
-}
-
-.calendar-day.empty {
-    background: transparent;
-    border: none;
-    cursor: default;
-}
-
-.day-number {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-muted);
-}
-
-.day-icons {
-    display: flex;
-    justify-content: center;
-    gap: 4px;
-}
-
-.icon-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: transparent;
-    font-size: 6px;
-    transition: all 0.2s;
-}
-
-.icon-dot i {
-    display: none;
-}
-
-/* Active States */
-.icon-dot.active-truck {
-    background: #2ecc71;
-    /* Green */
-    box-shadow: 0 0 5px rgba(46, 204, 113, 0.5);
-}
-
-.icon-dot.active-delivery {
-    background: #f1c40f;
-    /* Yellow */
-    box-shadow: 0 0 5px rgba(241, 196, 15, 0.5);
-}
-
-.icon-dot.active-emp {
-    background: #3498db;
-    /* Blue */
-    box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
-}
-
-/* Stat Badges */
-.stat-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 13px;
-    font-weight: 600;
-    border: 1px solid transparent;
-}
-
-.stat-badge.success {
-    background: rgba(46, 204, 113, 0.15);
-    color: #2ecc71;
-    border-color: rgba(46, 204, 113, 0.3);
-}
-
-.stat-badge.warning {
-    background: rgba(241, 196, 15, 0.15);
-    color: #f1c40f;
-    border-color: rgba(241, 196, 15, 0.3);
-}
-
-.stat-badge.info {
-    background: rgba(52, 152, 219, 0.15);
-    color: #3498db;
-    border-color: rgba(52, 152, 219, 0.3);
-}
-
-/* Modal Check Cards */
-.check-card {
-    display: block;
-    cursor: pointer;
-    margin: 0;
-}
-
-.check-card input {
-    display: none;
-}
-
-.check-content {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    padding: 12px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--border);
-    transition: all 0.2s;
-}
-
-.check-content i {
-    font-size: 24px;
-}
-
-.check-card input:checked+.check-content {
-    background: rgba(0, 194, 255, 0.1);
-    border-color: var(--primary);
-}
-
-.check-card input:checked+.check-content strong {
-    color: var(--primary);
-}
-
-
 .radio-card input:checked~.radio-label {
     background: rgba(37, 99, 235, 0.15);
     /* Primary color low opacity */
@@ -1264,7 +1102,7 @@ label {
     }
 
     .stats-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        grid-template-columns: repeat(2, 1fr) !important;
         /* 2 Columns on mobile FORCE */
         gap: 12px;
     }
@@ -2059,8 +1897,7 @@ label {
     /* 1. Force the cells to be BLOCK containers (or Flex Row) */
     table#tablaRegistros tr.history-card.expanded td.col-time,
     table#tablaRegistros tr.history-card.expanded td.col-price,
-    table#tablaRegistros tr.history-card.expanded td.col-qty,
-    table#tablaRegistros tr.history-card.expanded td.col-modalidad-mobile {
+    table#tablaRegistros tr.history-card.expanded td.col-qty {
         display: flex !important;
         flex-direction: row !important;
         justify-content: space-between !important;
@@ -2068,19 +1905,6 @@ label {
         width: 100% !important;
         text-align: left !important;
         padding: 8px 0 !important;
-    }
-
-    /* Explicitly style the new Modality Mobile Row */
-    table#tablaRegistros tr.history-card.expanded td.col-modalidad-mobile {
-        border-top: 1px dashed rgba(255, 255, 255, 0.1) !important;
-        margin-top: 4px;
-        order: 51;
-        /* After Time (50) */
-    }
-
-    /* Hide Modalidad Mobile Row when collapsed */
-    table#tablaRegistros tr.history-card:not(.expanded) td.col-modalidad-mobile {
-        display: none !important;
     }
 
     /* 2. Style the Label (Left) */
@@ -2716,289 +2540,37 @@ label {
     }
 }
 
-/* --- Mobile Fine-tuning --- */
-/* --- Modalidad Column & Badge --- */
-.modalidad-badge {
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 0.85em;
-    font-weight: 600;
-}
+/* --- FINAL MOBILE LAYOUT FORCE (Consolidated) --- */
+@media (max-width: 768px) {
 
-.modalidad-badge.solo {
-    background: rgba(46, 134, 222, 0.15);
-    /* Blue tint */
-    color: #2e86de;
-    border: 1px solid rgba(46, 134, 222, 0.3);
-}
-
-.modalidad-badge.ayudante {
-    background: rgba(255, 159, 67, 0.15);
-    /* Orange tint */
-    color: #ff9f43;
-    border: 1px solid rgba(255, 159, 67, 0.3);
-}
-
-/* --- Mobile/Tablet Layout ( < 1024px ) --- */
-@media (max-width: 1023px) {
-
-    /* Hide the Modalidad header column on mobile */
-    .data-table th:nth-child(4) {
-        display: none !important;
-    }
-
-    /* Override for Modalidad Cell to become a floating badge */
-    .data-table td.col-modalidad {
-        display: block !important;
-        position: absolute !important;
-        top: 10px !important;
-        left: 10px !important;
-        padding: 0 !important;
-        border: none !important;
-        width: auto !important;
-        z-index: 10;
-        background: transparent !important;
-    }
-
-    /* Modify badge style specifically for mobile 'floating' look */
-    .data-table td.col-modalidad .modalidad-badge {
-        font-size: 11px !important;
-        padding: 3px 8px !important;
-        background: #2e86de !important;
-        /* Solid Blue background as requested */
-        color: white !important;
-        border: none !important;
-    }
-
-    /* Ensure other cards keep rendering correctly */
-    .history-card {
-        position: relative;
-        /* Context for absolute positioning */
-    }
-
-    /* Force 2 Columns for all mobile/tablet devices */
+    /* Target specifically to override anything else */
     #view-dashboard .stats-grid,
     #view-reportes .stats-grid,
     .stats-grid {
         display: grid !important;
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        /* minmax(0, 1fr) prevents overflow issues */
         gap: 10px !important;
         width: 100% !important;
         box-sizing: border-box !important;
     }
 
-    /* Ensure cards fit in the grid columns */
     .stat-card {
         width: 100% !important;
         min-width: 0 !important;
-        padding: 12px 8px !important;
+        /* Critical for grid items */
+        padding: 10px !important;
         margin: 0 !important;
         box-sizing: border-box !important;
     }
 
-    /* Font sizing for tight spaces */
+    /* Reduce font sizes slightly to ensure fit */
     .stat-info .label {
         font-size: 11px !important;
         white-space: nowrap !important;
-        overflow: hidden;
-        text-overflow: ellipsis;
     }
 
     .stat-info .value {
-        font-size: 15px !important;
+        font-size: 16px !important;
     }
-}
-
-/* --- MOBILE CALENDAR FIX --- */
-@media (max-width: 480px) {
-    .calendar-grid {
-        gap: 2px !important;
-    }
-
-    .calendar-day {
-        padding: 2px !important;
-        border-radius: 4px !important;
-        min-height: 40px !important;
-    }
-
-    .day-number {
-        font-size: 10px !important;
-        margin-bottom: 2px;
-    }
-
-    .day-icons {
-        gap: 1px !important;
-        flex-wrap: wrap;
-        /* Allow wrap if needed, or just shrink */
-    }
-
-    .icon-dot {
-        width: 6px !important;
-        height: 6px !important;
-    }
-
-    .calendar-header {
-        margin-bottom: 5px !important;
-    }
-
-    .calendar-header div {
-        font-size: 10px !important;
-        padding: 2px !important;
-    }
-
-    /* Mobile Modal Tweaks */
-    .small-modal {
-        max-width: 90% !important;
-        padding: 15px !important;
-    }
-
-    .check-content {
-        padding: 10px !important;
-        gap: 10px !important;
-    }
-
-    .check-content i {
-        font-size: 18px !important;
-    }
-
-    .check-content strong {
-        font-size: 14px;
-    }
-
-    .check-content small {
-        font-size: 11px;
-    }
-}
-
-/* Small Modal Desktop */
-.small-modal {
-    max-width: 400px;
-}
-
-/* --- MOBILE DRAWER & NAVIGATION REFACTOR --- */
-
-.mobile-only {
-    display: none !important;
-}
-
-@media (max-width: 768px) {
-    .mobile-hidden {
-        display: none;
-    }
-
-    .mobile-only {
-        display: flex !important;
-    }
-
-    /* Fix Bottom Bar Item Sizing */
-    .sidebar .nav-btn {
-        min-width: 0;
-        /* Allow shrinking */
-        padding: 6px 2px;
-    }
-
-    .sidebar .nav-btn span {
-        font-size: 9px;
-        /* Smaller text for compact fit */
-    }
-}
-
-/* Drawer Styles */
-/* Drawer Styles - Flattened & Cleaned */
-.mobile-drawer {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    /* Viewport Width */
-    height: 100vh;
-    /* Viewport Height */
-    background: rgba(0, 0, 0, 0.8);
-    /* Darker, no blur */
-    z-index: 9999 !important;
-    /* Max Z-Index */
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    /* backdrop-filter: blur(4px); REMOVED for stability */
-}
-
-.drawer-content {
-    width: 100%;
-    background: #0f172a;
-    border-top: 1px solid var(--border);
-    border-radius: 20px 20px 0 0;
-    padding: 20px;
-    max-height: 80vh;
-    overflow-y: auto;
-    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
-    transform: none !important;
-    /* Force render */
-    opacity: 1 !important;
-    position: relative;
-    /* Ensure stacking */
-    z-index: 10000 !important;
-}
-
-.drawer-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 15px;
-}
-
-.drawer-header h3 {
-    font-size: 18px;
-    color: var(--text-main);
-    margin: 0;
-}
-
-/* RESTORING PRODUCTION STYLES with LAYOUT GUARDS */
-.drawer-grid {
-    display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 15px !important;
-    width: 100% !important;
-    min-height: 200px !important;
-    /* Prevent Collapse */
-    padding: 10px !important;
-}
-
-.drawer-btn {
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: center !important;
-    align-items: center !important;
-    background: rgba(255, 255, 255, 0.05) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 16px !important;
-    height: 100px !important;
-    /* Fixed Height */
-    width: 100% !important;
-    position: relative !important;
-    z-index: 2000 !important;
-}
-
-.drawer-btn .icon-box {
-    background: rgba(0, 194, 255, 0.1) !important;
-    /* Restore Blue Accent */
-    color: var(--primary) !important;
-    width: 40px !important;
-    height: 40px !important;
-    margin-right: 0 !important;
-    margin-bottom: 10px !important;
-}
-
-.drawer-btn i {
-    color: var(--primary) !important;
-    font-size: 20px !important;
-}
-
-.drawer-btn span {
-    font-size: 13px !important;
-    font-weight: 500 !important;
-    color: white !important;
-
 }

@@ -11,6 +11,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
+    <!-- VERSION CHECKER -->
+    <!-- <div id="version-badge"></div> -->
+
     <!-- Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
@@ -27,7 +30,8 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/main.css?v=20250101">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/main.css?v=DATA_FIX">
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
@@ -42,6 +46,20 @@
                 navigator.serviceWorker.register('./sw.js')
                     .then(reg => {
                         console.log('Service Worker registered');
+
+                        // FORCE UPDATE
+                        reg.onupdatefound = () => {
+                            const installingWorker = reg.installing;
+                            installingWorker.onstatechange = () => {
+                                if (installingWorker.state === 'installed') {
+                                    if (navigator.serviceWorker.controller) {
+                                        // New update available
+                                        console.log('New content available; forcing reload...');
+                                        window.location.reload();
+                                    }
+                                }
+                            };
+                        };
                         reg.update();
                     })
                     .catch(err => console.log('Service Worker registration failed: ', err));
@@ -214,33 +232,47 @@
             </div>
 
             <nav class="nav-links">
-                <button class="nav-btn active" data-tab="dashboard">
+                <button class="nav-btn active" id="nav-dashboard" data-tab="dashboard">
                     <i class="bi bi-grid-fill"></i>
                     <span>Dashboard</span>
                 </button>
-                <button class="nav-btn" data-tab="planta">
+                <button class="nav-btn mobile-hidden" id="nav-planta" data-tab="planta">
                     <i class="bi bi-shop"></i>
                     <span>Planta</span>
                 </button>
-                <button class="nav-btn" data-tab="camion">
+                <button class="nav-btn mobile-hidden" id="nav-camion" data-tab="camion">
                     <i class="bi bi-truck"></i>
                     <span>Camión</span>
                 </button>
-                <button class="nav-btn" data-tab="gastos">
+                <button class="nav-btn mobile-hidden" id="nav-gastos" data-tab="gastos">
                     <i class="bi bi-wallet2"></i>
                     <span>Gastos</span>
                 </button>
-                <button class="nav-btn" data-tab="reportes">
+                <button class="nav-btn" id="nav-reportes" data-tab="reportes">
                     <i class="bi bi-graph-up-arrow"></i>
                     <span>Reportes</span>
                 </button>
-                <button class="nav-btn" data-tab="historial">
+                <button class="nav-btn" id="nav-historial" data-tab="historial">
                     <i class="bi bi-clock-history"></i>
                     <span>Historial</span>
                 </button>
-                <button class="nav-btn" data-tab="produccion">
-                    <i class="bi bi-speedometer2"></i>
+                <button class="nav-btn mobile-hidden" id="nav-produccion" data-tab="produccion">
+                    <i class="bi bi-bar-chart-steps"></i>
                     <span>Producción</span>
+                </button>
+                <button class="nav-btn" id="nav-clientes" data-tab="clientes">
+                    <i class="bi bi-people"></i>
+                    <span>Clientes</span>
+                </button>
+                <button class="nav-btn mobile-hidden" id="nav-config" data-tab="config">
+                    <i class="bi bi-gear"></i>
+                    <span>Config</span>
+                </button>
+
+                <!-- Mobile "More" Button -->
+                <button class="nav-btn mobile-only" id="nav-more" onclick="toggleMobileDrawer()">
+                    <i class="bi bi-list"></i>
+                    <span>Más</span>
                 </button>
             </nav>
 
@@ -275,15 +307,37 @@
 
             <!-- VIEW: DASHBOARD -->
             <div id="view-dashboard" class="view active">
-                <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr); gap: 15px;">
-                    <!-- Sales Card -->
+                <div class="stats-grid">
+                    <!-- Gross Sales Card (New) -->
                     <div class="stat-card"
                         style="background: linear-gradient(135deg, rgba(46, 204, 113, 0.1), rgba(46, 204, 113, 0.05)); border: 1px solid rgba(46, 204, 113, 0.2);">
                         <div class="icon-box" style="background: rgba(46, 204, 113, 0.2); color: #2ecc71;"><i
-                                class="bi bi-cash-stack"></i></div>
+                                class="bi bi-cash"></i></div>
                         <div class="stat-info">
-                            <span class="label">Venta Total</span>
-                            <span class="value" id="dashTotal" style="color: #2ecc71;">RD$ 0.00</span>
+                            <span class="label">Ventas Totales</span>
+                            <span class="value" id="dashGrossSales" style="color: #2ecc71;">RD$ 0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Expenses Card (New) -->
+                    <div class="stat-card"
+                        style="background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(231, 76, 60, 0.05)); border: 1px solid rgba(231, 76, 60, 0.2);">
+                        <div class="icon-box" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c;"><i
+                                class="bi bi-wallet2"></i></div>
+                        <div class="stat-info">
+                            <span class="label">Gastos del Día</span>
+                            <span class="value" id="dashExpenses" style="color: #e74c3c;">RD$ 0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Net Profit Card (New) -->
+                    <div class="stat-card"
+                        style="background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(52, 152, 219, 0.05)); border: 1px solid rgba(52, 152, 219, 0.2);">
+                        <div class="icon-box" style="background: rgba(52, 152, 219, 0.2); color: #3498db;"><i
+                                class="bi bi-piggy-bank"></i></div>
+                        <div class="stat-info">
+                            <span class="label">Ganancia Neta</span>
+                            <span class="value" id="dashNet" style="color: #3498db;">RD$ 0.00</span>
                             <div class="stat-change" id="diffTotal"
                                 style="font-size: 11px; margin-top: 4px; display: flex; align-items: center; gap: 4px; color: var(--text-muted);">
                                 <span>-- vs ayer</span>
@@ -642,79 +696,158 @@
 
 
 
-                <div class="section-card" style="margin-top:20px;">
-                    <h3><i class="bi bi-table"></i> Resumen del Período</h3>
-                    <div class="summary-card">
-                        <div class="section-card">
-                            <h3>Rentabilidad Neta</h3>
-                            <div class="big-stat">
-                                <span id="reportNetProfit">RD$ 0.00</span>
-                                <small id="reportGrowth"
-                                    style="font-size: 14px; margin-left: 10px; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.05); color: var(--text-muted);">
-                                    --
-                                </small>
-                            </div>
-                            <div class="stat-row">
-                                <span>Margen</span>
-                                <span id="reportMargin" style="font-weight:bold">0%</span>
-                            </div>
-                            <div class="stat-row"
-                                style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);">
-                                <span>Ticket Promedio</span>
-                                <span id="reportAvgTicket" style="font-weight:bold">RD$ 0</span>
+                <div class="section-card"
+                    style="background:transparent; border:none; box-shadow:none; padding:0; backdrop-filter:none;">
+                    <h3 style="margin-left:5px;"><i class="bi bi-grid-1x2"></i> Resumen Financiero</h3>
+
+                    <!-- KPI Cards Grid -->
+                    <div class="stats-grid">
+                        <!-- Ingresos -->
+                        <div class="stat-card"
+                            style="background: linear-gradient(135deg, rgba(46, 204, 113, 0.1), rgba(46, 204, 113, 0.05)); border: 1px solid rgba(46, 204, 113, 0.2);">
+                            <div class="icon-box" style="background: rgba(46, 204, 113, 0.2); color: #2ecc71;"><i
+                                    class="bi bi-cash-coin"></i></div>
+                            <div class="stat-info">
+                                <span class="label">Ingresos</span>
+                                <span class="value" id="repIngresos" style="color: #2ecc71;">RD$ 0.00</span>
                             </div>
                         </div>
-
-                        <div class="section-card">
-                            <h3>Desglose de Ventas</h3>
-                            <div style="height:250px; position:relative;">
-                                <canvas id="salesPieChart"></canvas>
+                        <!-- Gastos -->
+                        <div class="stat-card"
+                            style="background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(231, 76, 60, 0.05)); border: 1px solid rgba(231, 76, 60, 0.2);">
+                            <div class="icon-box" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c;"><i
+                                    class="bi bi-wallet2"></i></div>
+                            <div class="stat-info">
+                                <span class="label">Gastos</span>
+                                <span class="value" id="repGastos" style="color: #e74c3c;">RD$ 0.00</span>
+                            </div>
+                        </div>
+                        <!-- Neto -->
+                        <div class="stat-card"
+                            style="background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(52, 152, 219, 0.05)); border: 1px solid rgba(52, 152, 219, 0.2);">
+                            <div class="icon-box" style="background: rgba(52, 152, 219, 0.2); color: #3498db;"><i
+                                    class="bi bi-piggy-bank"></i></div>
+                            <div class="stat-info">
+                                <span class="label">Ganancia Neta</span>
+                                <span class="value" id="repNeto" style="color: #3498db;">RD$ 0.00</span>
+                            </div>
+                        </div>
+                        <!-- Botellones -->
+                        <div class="stat-card"
+                            style="background: linear-gradient(135deg, rgba(155, 89, 182, 0.1), rgba(155, 89, 182, 0.05)); border: 1px solid rgba(155, 89, 182, 0.2);">
+                            <div class="icon-box" style="background: rgba(155, 89, 182, 0.2); color: #9b59b6;"><i
+                                    class="bi bi-box-seam"></i></div>
+                            <div class="stat-info">
+                                <span class="label">Botellones</span>
+                                <span class="value" id="repBotellones" style="color: #9b59b6;">0</span>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Expenses Chart Section (Moved Down) -->
-                    <div class="section-card" style="margin-top:24px;">
-                        <h3><i class="bi bi-wallet2"></i> Desglose de Gastos</h3>
-                        <div style="height:250px; position:relative;">
-                            <canvas id="gastosChart"></canvas>
-                        </div>
-                        <div id="gastosLegend"
-                            style="margin-top:15px; display:flex; flex-wrap:wrap; gap:10px; justify-content:center;">
+                    <!-- Breakdown Table -->
+                    <div class="section-card">
+                        <h3><i class="bi bi-bar-chart-steps"></i> Ventas por Canal</h3>
+                        <table class="modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Canal</th>
+                                    <th class="text-right">Cant.</th>
+                                    <th class="text-right">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="repChannelBody">
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted">Cargando...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+
+                <!-- Expenses Chart Section -->
+                <div class="section-card" style="margin-top:24px;">
+                    <h3><i class="bi bi-wallet2"></i> Desglose de Gastos</h3>
+                    <div style="height:250px; position:relative;">
+                        <canvas id="gastosChart"></canvas>
+                    </div>
+                    <div id="gastosLegend"
+                        style="margin-top:15px; display:flex; flex-wrap:wrap; gap:10px; justify-content:center;">
+                    </div>
+                </div>
+
+                <!-- WORK CALENDAR SECTION (Moved Below) -->
+                <div class="section-card" id="calendarSection" style="margin-top:24px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                        <h3 style="margin:0;"><i class="bi bi-calendar-check"></i> Asistencia Laboral</h3>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <button onclick="prevMonth()" class="btn-sm btn-outline"><i
+                                    class="bi bi-chevron-left"></i></button>
+                            <span id="calendarMonthLabel"
+                                style="font-weight:bold; min-width:100px; text-align:center;">---</span>
+                            <button onclick="nextMonth()" class="btn-sm btn-outline"><i
+                                    class="bi bi-chevron-right"></i></button>
                         </div>
                     </div>
 
-                    <!-- Charts & Tables -->
-                    <div class="charts-column">
-                        <div class="section-card chart-card">
-                            <h3>Tendencia de Ventas</h3>
-                            <div style="height:300px; position:relative;">
-                                <canvas id="trendChart"></canvas>
-                            </div>
+                    <!-- Calendar Stats -->
+                    <div style="display:flex; gap:15px; margin-bottom:15px; flex-wrap:wrap;">
+                        <div class="stat-badge success">
+                            <i class="bi bi-truck"></i> Camión: <span id="statCamionDays">0</span>
                         </div>
+                        <div class="stat-badge warning">
+                            <i class="bi bi-bicycle"></i> Delivery: <span id="statDeliveryDays">0</span>
+                        </div>
+                        <div class="stat-badge info">
+                            <i class="bi bi-person"></i> Ayudante: <span id="statEmpDays">0</span>
+                        </div>
+                    </div>
 
-                        <!-- Top Clients Table -->
-                        <div class="section-card" style="margin-top:20px;">
-                            <h3>🏆 Mejores Clientes</h3>
-                            <div class="table-container" style="max-height: 300px; overflow-y: auto;">
-                                <table style="width:100%; border-collapse: collapse; font-size:14px;">
-                                    <thead style="position:sticky; top:0; background:var(--bg-dark); z-index:1;">
-                                        <tr style="text-align:left; border-bottom:1px solid var(--border);">
-                                            <th style="padding:10px;">Cliente</th>
-                                            <th style="padding:10px; text-align:right;">Comprados</th>
-                                            <th style="padding:10px; text-align:right;">Stock</th>
-                                            <th style="padding:10px; text-align:right;">Total ($)</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="topClientsTable">
-                                        <tr>
-                                            <td colspan="4"
-                                                style="text-align:center; padding:15px; color:var(--text-muted);">
-                                                Cargando...</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
+                    <!-- Calendar Grid -->
+                    <div class="calendar-header">
+                        <div>Dom</div>
+                        <div>Lun</div>
+                        <div>Mar</div>
+                        <div>Mié</div>
+                        <div>Jue</div>
+                        <div>Vie</div>
+                        <div>Sáb</div>
+                    </div>
+                    <div id="calendarGrid" class="calendar-grid">
+                        <!-- Generated by JS -->
+                    </div>
+                </div>
+
+                <!-- Charts & Tables -->
+                <div class="charts-column">
+                    <div class="section-card chart-card">
+                        <h3>Tendencia de Ventas</h3>
+                        <div style="height:300px; position:relative;">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Top Clients Table -->
+                    <div class="section-card" style="margin-top:20px;">
+                        <h3>🏆 Mejores Clientes</h3>
+                        <div class="table-container" style="max-height: 300px; overflow-y: auto;">
+                            <table style="width:100%; border-collapse: collapse; font-size:14px;">
+                                <thead style="position:sticky; top:0; background:var(--bg-dark); z-index:1;">
+                                    <tr style="text-align:left; border-bottom:1px solid var(--border);">
+                                        <th style="padding:10px;">Cliente</th>
+                                        <th style="padding:10px; text-align:right;">Comprados</th>
+                                        <th style="padding:10px; text-align:right;">Stock</th>
+                                        <th style="padding:10px; text-align:right;">Total ($)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="topClientsTable">
+                                    <tr>
+                                        <td colspan="4"
+                                            style="text-align:center; padding:15px; color:var(--text-muted);">
+                                            Cargando...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -855,6 +988,85 @@
                 </div>
             </div>
 
+            <!-- VIEW: CLIENTES -->
+            <div id="view-clientes" class="view">
+                <div style="height:100%; display:flex; flex-direction:column;">
+                    <div
+                        style="padding:15px; background:var(--bg-dark); position:sticky; top:0; z-index:10; border-bottom:1px solid var(--border);">
+                        <!-- Header & Form Button -->
+                        <div class="add-client-form"
+                            style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px; margin-bottom:15px; border:1px solid var(--border);">
+                            <h4
+                                style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                                <span>👥 Gestión de Clientes</span>
+                                <!-- Toggle Button inside header -->
+                                <button id="btnToggleClientForm" onclick="toggleNewClientForm()"
+                                    class="btn btn-sm btn-outline" style="font-size:12px;">
+                                    <i class="bi bi-plus-circle"></i> Nuevo
+                                </button>
+                            </h4>
+
+                            <!-- Collapsible Form -->
+                            <div id="clientFormContainer" style="display:none; margin-top:15px;">
+                                <h4 id="formClientTitle"
+                                    style="margin-bottom:12px; font-size:14px; color:var(--text-muted); text-transform:uppercase;">
+                                    Nuevo Cliente</h4>
+                                <input type="hidden" id="editClientId">
+                                <input type="hidden" id="newClientLat">
+                                <input type="hidden" id="newClientLng">
+                                <div
+                                    style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+                                    <input type="text" id="newClientName" placeholder="Nombre completo">
+                                    <input type="text" id="newClientPhone" placeholder="Teléfono">
+                                </div>
+                                <div
+                                    style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:10px; margin-bottom:10px;">
+                                    <input type="text" id="newClientAddress" placeholder="Dirección / Sector">
+                                    <input type="number" id="newClientStock" placeholder="Stock"
+                                        title="Cantidad de botellones">
+                                    <input type="number" id="newClientPrice" placeholder="Precio (RD$)" value="30">
+                                </div>
+                                <div style="display:flex; gap:10px;">
+                                    <button id="btnSaveClient" onclick="guardarClienteNuevo()"
+                                        class="btn btn-primary full-width">
+                                        <i class="bi bi-plus-circle"></i> Guardar Cliente
+                                    </button>
+                                </div>
+                                <button class="btn btn-outline full-width" id="btnCancelEdit"
+                                    style="display:none; margin-top:10px;"
+                                    onclick="cancelarEdicionCliente()">Cancelar</button>
+                            </div>
+                        </div>
+
+                        <!-- Search -->
+                        <div class="search-bar" style="margin-bottom:0;">
+                            <input type="text" id="busquedaCliente" placeholder="Buscar cliente..."
+                                onkeyup="filtrarClientes()" style="padding-left:15px;">
+                        </div>
+                    </div>
+
+                    <!-- List -->
+                    <div id="listaClientesContainer" class="client-list" style="flex:1; overflow-y:auto; padding:15px;">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: CONFIG -->
+            <div id="view-config" class="view">
+                <div class="section-card">
+                    <div class="card-header">
+                        <h3>⚙️ Configuración</h3>
+                    </div>
+                    <div
+                        style="padding:40px; text-align:center; color:var(--text-muted); border:1px dashed var(--border); border-radius:12px; margin-top:20px;">
+                        <i class="bi bi-tools" style="font-size:32px; margin-bottom:10px; display:block;"></i>
+                        <p>Panel de administración en construcción.</p>
+                        <small>Próximamente: Gestión de Precios Base y Usuarios.</small>
+                    </div>
+                </div>
+            </div>
+
         </main>
     </div>
 
@@ -863,65 +1075,16 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-    <!-- MODAL CLIENTES -->
-    <div id="modalClientes" class="modal-overlay" style="display:none;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>👥 Directorio de Clientes</h3>
-                <button onclick="toggleClientesModal()" class="btn-close"><i class="bi bi-x-lg"></i></button>
-            </div>
+    <!-- MODAL CLIENTES REMOVED (Moved to View) -->
 
-            <div class="modal-body"
-                style="padding:0; display:flex; flex-direction:column; height:100%; overflow:hidden;">
-                <!-- Sticky Header Container -->
-                <div
-                    style="padding:15px; background:var(--bg-dark); position:sticky; top:0; z-index:10; border-bottom:1px solid var(--border);">
-                    <!-- Add Client Form -->
-                    <div class="add-client-form"
-                        style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px; margin-bottom:15px; border:1px solid var(--border);">
-                        <h4 id="formClientTitle"
-                            style="margin-bottom:12px; font-size:14px; color:var(--text-muted); text-transform:uppercase;">
-                            Nuevo Cliente</h4>
-                        <input type="hidden" id="editClientId"> <!-- Hidden ID for editing -->
-                        <input type="hidden" id="newClientLat">
-                        <input type="hidden" id="newClientLng">
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
-                            <input type="text" id="newClientName" placeholder="Nombre completo">
-                            <input type="text" id="newClientPhone" placeholder="Teléfono">
-                        </div>
-                        <div style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:10px; margin-bottom:10px;">
-                            <input type="text" id="newClientAddress" placeholder="Dirección / Sector">
-                            <input type="number" id="newClientStock" placeholder="Stock"
-                                title="Cantidad de botellones que posee">
-                            <input type="number" id="newClientPrice" placeholder="Precio (RD$)" value="30">
-                        </div>
-                        <div style="display:flex; gap:10px;">
-                            <button id="btnSaveClient" onclick="guardarClienteNuevo()"
-                                class="btn btn-primary full-width">
-                                <i class="bi bi-plus-circle"></i> Agregar Cliente
-                            </button>
-                        </div>
-                        <button class="btn btn-outline full-width" id="btnCancelEdit"
-                            style="display:none; margin-top:10px;" onclick="cancelarEdicionCliente()">Cancelar</button>
-                    </div>
+    <!-- MOBILE DRAWER (Secondary Menu) -->
 
-                    <!-- Client List Search (Sticky) -->
-                    <div class="search-bar" style="margin-bottom:0;">
-                        <input type="text" id="busquedaCliente" placeholder="Buscar cliente..."
-                            onkeyup="filtrarClientes()" style="padding-left:15px;"> <!-- Removed Icon padding -->
-                    </div>
-                </div>
 
-                <!-- Scrollable List -->
-                <div id="listaClientesContainer" class="client-list" style="flex:1; overflow-y:auto; padding:15px;">
-                    <!-- Populated by JS -->
-                </div>
-            </div>
-        </div>
-    </div>
+
 
     <!-- MODAL DEUDAS -->
-    <div id="modalDebts" class="modal-overlay" style="display:none;">
+    <div id="modalDebts" class="modal-overlay" style="display:none;"
+        onclick="if(event.target === this) toggleDebtsModal()">
         <div class="modal-content">
             <div class="modal-header">
                 <h3><i class="bi bi-exclamation-circle"></i> Cuentas por Cobrar</h3>
@@ -960,7 +1123,8 @@
     </div>
 
     <!-- MODAL HISTORIAL CLIENTE (NUEVO) -->
-    <div id="modalHistorialCliente" class="modal-overlay" style="display:none; z-index: 10001;">
+    <div id="modalHistorialCliente" class="modal-overlay" style="display:none; z-index: 10001;"
+        onclick="if(event.target === this) this.style.display='none'">
         <div class="modal-content" style="max-height: 85vh;">
             <div class="modal-header">
                 <h3 id="historialClienteNombre">📜 Historial</h3>
@@ -975,13 +1139,232 @@
         </div>
     </div>
 
-    <!-- Main Script -->
-    <!-- Modules -->
-    <script src="js/utils.js?v=20250101"></script>
-    <script src="js/globals.js?v=20250101"></script>
-    <script src="js/clients.js?v=20250101"></script>
-    <script src="js/reports.js?v=20250101"></script>
-    <script src="script.js?v=20250101"></script>
+    <!-- MODAL ATTENDANCE -->
+    <div id="modalAsistencia" class="modal-overlay" style="display:none;"
+        onclick="if(event.target===this) this.style.display='none'">
+        <div class="modal-content small-modal">
+            <h3 id="modalAsistenciaTitle"
+                style="margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:10px;">
+                📅 Fecha
+            </h3>
+            <input type="hidden" id="asistenciaDate">
+
+            <div style="display:flex; flex-direction:column; gap:15px; margin-bottom:20px;">
+
+                <label class="check-card">
+                    <input type="checkbox" id="checkCamion">
+                    <div class="check-content">
+                        <i class="bi bi-truck" style="color:#2ecc71;"></i>
+                        <div>
+                            <strong>Camión</strong>
+                            <small>Trabajó Hoy</small>
+                        </div>
+                    </div>
+                </label>
+
+                <label class="check-card">
+                    <input type="checkbox" id="checkDelivery">
+                    <div class="check-content">
+                        <i class="bi bi-bicycle" style="color:#f1c40f;"></i>
+                        <div>
+                            <strong>Delivery</strong>
+                            <small>Trabajó Hoy</small>
+                        </div>
+                    </div>
+                </label>
+
+                <label class="check-card">
+                    <input type="checkbox" id="checkEmpleado">
+                    <div class="check-content">
+                        <i class="bi bi-person" style="color:#3498db;"></i>
+                        <div>
+                            <strong>Ayudante</strong>
+                            <small>Trabajó Hoy</small>
+                        </div>
+                    </div>
+                </label>
+
+                <div>
+                    <label style="display:block; margin-bottom:5px; font-size:12px; color:var(--text-muted);">Notas
+                        (Opcional):</label>
+                    <textarea id="asistenciaNotas" rows="2" placeholder="Ej: Llovió mucho, salió tarde..."
+                        style="width:100%; border-radius:8px; border:1px solid var(--border); background:rgba(255,255,255,0.05); color:white; padding:8px;"></textarea>
+                </div>
+
+            </div>
+
+            <div style="display:flex; justify-content:end; gap:10px;">
+                <button onclick="document.getElementById('modalAsistencia').style.display='none'"
+                    class="btn btn-outline">Cancelar</button>
+                <button onclick="saveAsistencia()" class="btn btn-primary">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 📱 STATIC MENU VIEW (Replaces Drawer) -->
+    <div id="view-menu" class="view-section" style="display:none; padding:20px;">
+        <div class="header-tools">
+            <h2>Menú Principal</h2>
+        </div>
+
+        <div class="stats-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+            <!-- Menu Items -->
+            <div class="stat-card" onclick="mostrarSeccion('planta')"
+                style="cursor:pointer; text-align:center; padding:20px;">
+                <div class="icon-box"
+                    style="background:rgba(59,130,246,0.1); color:#3b82f6; width:50px; height:50px; margin:0 auto 10px; display:flex; align-items:center; justify-content:center; border-radius:12px;">
+                    <i class="bi bi-shop" style="font-size:24px;"></i>
+                </div>
+                <h3>Planta</h3>
+            </div>
+
+            <div class="stat-card" onclick="mostrarSeccion('camion')"
+                style="cursor:pointer; text-align:center; padding:20px;">
+                <div class="icon-box"
+                    style="background:rgba(16,185,129,0.1); color:#10b981; width:50px; height:50px; margin:0 auto 10px; display:flex; align-items:center; justify-content:center; border-radius:12px;">
+                    <i class="bi bi-truck" style="font-size:24px;"></i>
+                </div>
+                <h3>Camión</h3>
+            </div>
+
+            <div class="stat-card" onclick="mostrarSeccion('gastos')"
+                style="cursor:pointer; text-align:center; padding:20px;">
+                <div class="icon-box"
+                    style="background:rgba(245,158,11,0.1); color:#f59e0b; width:50px; height:50px; margin:0 auto 10px; display:flex; align-items:center; justify-content:center; border-radius:12px;">
+                    <i class="bi bi-wallet2" style="font-size:24px;"></i>
+                </div>
+                <h3>Gastos</h3>
+            </div>
+
+            <div class="stat-card" onclick="mostrarSeccion('produccion')"
+                style="cursor:pointer; text-align:center; padding:20px;">
+                <div class="icon-box"
+                    style="background:rgba(139,92,246,0.1); color:#8b5cf6; width:50px; height:50px; margin:0 auto 10px; display:flex; align-items:center; justify-content:center; border-radius:12px;">
+                    <i class="bi bi-bar-chart-steps" style="font-size:24px;"></i>
+                </div>
+                <h3>Producción</h3>
+            </div>
+
+            <div class="stat-card" onclick="mostrarSeccion('config')"
+                style="cursor:pointer; text-align:center; padding:20px;">
+                <div class="icon-box"
+                    style="background:rgba(107,114,128,0.1); color:#6b7280; width:50px; height:50px; margin:0 auto 10px; display:flex; align-items:center; justify-content:center; border-radius:12px;">
+                    <i class="bi bi-gear" style="font-size:24px;"></i>
+                </div>
+                <h3>Config</h3>
+            </div>
+
+            <div class="stat-card" onclick="if(window.handleLogout) window.handleLogout()"
+                style="cursor:pointer; text-align:center; padding:20px; border:1px solid rgba(239,68,68,0.3);">
+                <div class="icon-box"
+                    style="background:rgba(239,68,68,0.1); color:#ef4444; width:50px; height:50px; margin:0 auto 10px; display:flex; align-items:center; justify-content:center; border-radius:12px;">
+                    <i class="bi bi-box-arrow-right" style="font-size:24px;"></i>
+                </div>
+                <h3 style="color:#ef4444;">Salir</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🔥 CORE APP -->
+    <!-- Globals: Initializes Firebase & Window State -->
+    <script src="js/globals.js?v=2"></script>
+
+    <!-- 🚀 MODULES ENTRY POINT -->
+    <!-- Loads modules (Utils, Auth, Config, Clients, Reports) and bridges them to Window -->
+    <script type="module" src="js/app.js?v=MODULE_V3"></script>
+
+    <!-- MOBILE DRAWER (FINAL REFACTOR v81) -->
+    <!-- Renamed ID to bypass ANY existing CSS rules in main.css -->
+    <div id="mobileDrawer_v81"
+        style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); z-index:999999; flex-direction:column; justify-content:flex-end;"
+        onclick="if(event.target===this) toggleMobileDrawer()">
+
+        <!-- Inline Styles for Content to guarantee visibility -->
+        <div class="drawer-content"
+            style="background: #1e293b; width:100%; border-radius: 20px 20px 0 0; padding:20px; box-sizing:border-box;">
+
+
+            <div class="drawer-header">
+                <h3>Menú Principal</h3>
+                <button onclick="toggleMobileDrawer()" class="btn-close"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="drawer-grid">
+                <button class="drawer-btn" id="drawer-planta" data-tab="planta">
+                    <div class="icon-box"><i class="bi bi-shop"></i></div>
+                    <span>Planta</span>
+                </button>
+                <button class="drawer-btn" id="drawer-camion" data-tab="camion">
+                    <div class="icon-box"><i class="bi bi-truck"></i></div>
+                    <span>Camión</span>
+                </button>
+                <button class="drawer-btn" id="drawer-gastos" data-tab="gastos">
+                    <div class="icon-box"><i class="bi bi-wallet2"></i></div>
+                    <span>Gastos</span>
+                </button>
+                <button class="drawer-btn" id="drawer-produccion" data-tab="produccion">
+                    <div class="icon-box"><i class="bi bi-bar-chart-steps"></i></div>
+                    <span>Producción</span>
+                </button>
+                <button class="drawer-btn" id="drawer-config" data-tab="config">
+                    <div class="icon-box"><i class="bi bi-gear"></i></div>
+                    <span>Config</span>
+                </button>
+                <button class="drawer-btn" style="color:var(--danger);"
+                    onclick="if(window.handleLogout) window.handleLogout()">
+                    <div class="icon-box" style="background:rgba(231,29,54,0.1); color:var(--danger);"><i
+                            class="bi bi-box-arrow-right"></i></div>
+                    <span>Salir</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ⚙️ LEGACY UI CONTROLLER -->
+    <!-- Handles DOM updates and main app flow. Now uses bridged functions. -->
+    <script defer src="script.js?v=REFACTOR_V3"></script>
+    <!-- Force Mobile Layout Script -->
+    <script>
+        function forzarGridMovil() {
+            // Broader check to catch tablets/large phones
+            if (window.innerWidth <= 1023) {
+                const grids = document.querySelectorAll('.stats-grid');
+                grids.forEach(grid => {
+                    grid.style.setProperty('display', 'grid', 'important');
+                    // Use minmax to prevent content from forcing wide columns
+                    grid.style.setProperty('grid-template-columns', 'repeat(2, minmax(0, 1fr))', 'important');
+                    grid.style.setProperty('gap', '10px', 'important');
+                    grid.style.setProperty('width', '100%', 'important');
+                    grid.style.setProperty('box-sizing', 'border-box', 'important');
+                });
+
+                // Force cards to fit
+                const cards = document.querySelectorAll('.stat-card');
+                cards.forEach(card => {
+                    card.style.setProperty('min-width', '0', 'important');
+                    card.style.setProperty('width', '100%', 'important');
+                    card.style.setProperty('box-sizing', 'border-box', 'important');
+                });
+
+            } else {
+                // Desktop Reset
+                const grids = document.querySelectorAll('.stats-grid');
+                grids.forEach(grid => {
+                    grid.style.removeProperty('display');
+                    grid.style.removeProperty('grid-template-columns');
+                    grid.style.removeProperty('gap');
+                    grid.style.removeProperty('width');
+                });
+            }
+        }
+
+        window.addEventListener('load', forzarGridMovil);
+        window.addEventListener('resize', forzarGridMovil);
+        // Run immediately
+        forzarGridMovil();
+
+        // Polling to catch dynamic updates
+        setInterval(forzarGridMovil, 500); 
+    </script>
 </body>
 
 </html>

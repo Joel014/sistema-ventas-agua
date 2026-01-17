@@ -1,9 +1,26 @@
-// --- 📊 MÓDULO DE REPORTES ---
+/**
+ * Reports Module
+ * Handles Charts, Stats, and PDF Export.
+ */
 
-// Global Chart Instances (from Globals)
-// window.myPieChart, window.myTrendChart, window.gastosChartInstance
+import { formatCurrency } from './utils.js';
 
-window.actualizarReportes = function (data = null) {
+// Helper for chart colors
+function getColor(index) {
+    const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#8e44ad', '#2ecc71'];
+    return colors[index % colors.length];
+}
+
+// Helper for date
+function getFechaFromId(registro) {
+    if (registro.timestamp) return new Date(registro.timestamp);
+    if (registro.createdAt && registro.createdAt.seconds) return new Date(registro.createdAt.seconds * 1000);
+    return new Date();
+}
+
+// --- EXPORTED FUNCTIONS ---
+
+export function actualizarReportes(data = null) {
     const dataSource = data || window.ventasDelDia;
 
     // 1. Employee Ranking
@@ -113,47 +130,84 @@ window.actualizarReportes = function (data = null) {
         });
     }
 
-    // 3. Stats Summary (Net Profit, etc.)
-    const totalVentas = dataSource.reduce((acc, v) => v.tipo !== 'Gasto' ? acc + (Number(v.total) || 0) : acc, 0);
-    const totalGastos = dataSource.reduce((acc, v) => v.tipo === 'Gasto' ? acc + (Math.abs(Number(v.total)) || 0) : acc, 0);
-    const totalNeto = totalVentas - totalGastos;
-    const profit = totalNeto;
-    const margin = totalVentas > 0 ? ((profit / totalVentas) * 100).toFixed(1) : 0;
-    const countVentas = dataSource.filter(v => v.tipo !== 'Gasto').length;
-    const avgTicket = countVentas > 0 ? (totalVentas / countVentas) : 0;
+    // 3. Stats Summary (New Logic for Redesign)
+    let totalIngresos = 0;
+    let totalGastos = 0;
+    let totalBotellones = 0;
 
-    // Update new Summary Elements (from Expense Report Phase)
-    if (document.getElementById('repVentaTotal')) {
-        document.getElementById('repVentaTotal').textContent = formatCurrency(totalVentas);
-        document.getElementById('repGastosTotal').textContent = formatCurrency(totalGastos);
-        document.getElementById('repNeto').textContent = formatCurrency(totalNeto);
+    // Breakdown stats
+    const breakdown = {
+        'Local': { qty: 0, total: 0 },
+        'Delivery': { qty: 0, total: 0 },
+        'Camión': { qty: 0, total: 0 },
+        'Otros': { qty: 0, total: 0 }
+    };
+
+    dataSource.forEach(v => {
+        const val = Number(v.total) || 0;
+        const qty = Number(v.cantidad) || 0;
+
+        if (v.tipo === 'Gasto') {
+            totalGastos += Math.abs(val);
+        } else {
+            // Es venta
+            if (val > 0) totalIngresos += val;
+            totalBotellones += qty;
+
+            // Channel breakdown
+            const tipoRaw = v.tipo || 'Otros';
+            // Normalize type keys
+            let typeKey = 'Otros';
+            if (tipoRaw.includes('Local')) typeKey = 'Local';
+            else if (tipoRaw.includes('Delivery')) typeKey = 'Delivery';
+            else if (tipoRaw.includes('Camión')) typeKey = 'Camión';
+
+            if (breakdown[typeKey]) {
+                breakdown[typeKey].qty += qty;
+                breakdown[typeKey].total += val;
+            } else {
+                breakdown['Otros'].qty += qty;
+                breakdown['Otros'].total += val;
+            }
+        }
+    });
+
+    const totalNeto = totalIngresos - totalGastos;
+
+    // Update KPI Cards
+    if (document.getElementById('repIngresos')) document.getElementById('repIngresos').textContent = formatCurrency(totalIngresos);
+    if (document.getElementById('repGastos')) document.getElementById('repGastos').textContent = formatCurrency(totalGastos);
+    if (document.getElementById('repNeto')) {
+        const el = document.getElementById('repNeto');
+        el.textContent = formatCurrency(totalNeto);
+        el.style.color = totalNeto < 0 ? '#e74c3c' : '#3498db';
+    }
+    if (document.getElementById('repBotellones')) document.getElementById('repBotellones').textContent = totalBotellones;
+
+    // Update Breakdown Table
+    const tbody = document.getElementById('repChannelBody');
+    if (tbody) {
+        tbody.innerHTML = Object.entries(breakdown).map(([canal, stats]) => `
+            <tr>
+                <td style="padding:12px;">
+                    <div style="font-weight:500;">${canal}</div>
+                </td>
+                <td class="text-right" style="padding:12px;">${stats.qty}</td>
+                <td class="text-right" style="padding:12px; font-weight:600; color:var(--primary);">${formatCurrency(stats.total)}</td>
+            </tr>
+        `).join('');
     }
 
-    // Update old Summary Elements (if present)
-    const elProfit = document.getElementById('reportNetProfit');
-    if (elProfit) elProfit.textContent = formatCurrency(profit);
-
-    const elMargin = document.getElementById('reportMargin');
-    if (elMargin) elMargin.textContent = `${margin}%`;
-
-    const elAvg = document.getElementById('reportAvgTicket');
-    if (elAvg) elAvg.textContent = formatCurrency(avgTicket);
-
-
-    // 4. Expenses Chart (New)
+    // 4. Expenses Chart
     const gastosPorCategoria = {};
     dataSource.filter(v => v.tipo === 'Gasto').forEach(g => {
         let cat = g.categoria;
 
-        // If category is generic ('Otros', 'Sin Categoría') or missing, use the description for better insight
         if (!cat || cat === 'Otros' || cat === 'Sin Categoría') {
             const desc = g.descripcion || g.detalles || '';
-            // Clean description (remove generic prefixes if any)
             let cleanDesc = desc.replace(/^(Otros|Gasto|Nota)\s*-\s*/i, '').trim();
 
             if (cleanDesc && cleanDesc.length > 2) {
-                // Use the specific description as the category label
-                // Truncate if too long to keep chart clean
                 cat = cleanDesc.length > 25 ? cleanDesc.substring(0, 25) + '...' : cleanDesc;
             } else {
                 cat = 'Otros (Sin Detalle)';
@@ -165,15 +219,14 @@ window.actualizarReportes = function (data = null) {
     });
     renderGastosChart(gastosPorCategoria);
 
-    // 5. Client Reporting (Legacy)
-    if (window.generarReporteClientes) window.generarReporteClientes(dataSource);
-};
+    // 5. Client Reporting
+    generarReporteClientes(dataSource);
+}
 
-window.renderGastosChart = function (dataMap) {
+export function renderGastosChart(dataMap) {
     const ctx = document.getElementById('gastosChart');
     if (!ctx) return;
 
-    // Clear existing
     if (window.gastosChartInstance) {
         window.gastosChartInstance.destroy();
     }
@@ -181,7 +234,6 @@ window.renderGastosChart = function (dataMap) {
     const labels = Object.keys(dataMap);
     const values = Object.values(dataMap);
 
-    // Legend
     const legendContainer = document.getElementById('gastosLegend');
     if (legendContainer) {
         if (labels.length === 0) {
@@ -212,20 +264,60 @@ window.renderGastosChart = function (dataMap) {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { display: false } // Custom legend used
+                legend: { display: false }
             }
         }
     });
 }
 
-function getColor(index) {
-    const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#8e44ad', '#2ecc71'];
-    return colors[index % colors.length];
+export function generarReporteClientes(data) {
+    const tableBody = document.getElementById('topClientsTable');
+    if (!tableBody) return;
+
+    if (!data || data.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:15px; color:var(--text-muted);">Sin datos</td></tr>';
+        return;
+    }
+
+    const clientStats = {};
+
+    data.forEach(v => {
+        if (v.tipo === 'Gasto') return;
+        const key = v.clienteId || v.clienteNombre || 'Casual';
+        const name = v.clienteNombre || (v.clienteId ? 'Cliente ' + v.clienteId : 'Casual');
+
+        if (!clientStats[key]) {
+            clientStats[key] = { id: v.clienteId, name: name, count: 0, total: 0 };
+        }
+        clientStats[key].count += 1;
+        clientStats[key].total += (Number(v.total) || 0);
+    });
+
+    const sortedClients = Object.values(clientStats).sort((a, b) => b.total - a.total).slice(0, 10);
+
+    if (sortedClients.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:15px; color:var(--text-muted);">Sin clientes registrados</td></tr>';
+        return;
+    }
+
+    tableBody.innerHTML = sortedClients.map(c => {
+        const realClient = (window.listaClientes || []).find(x => x.id === c.id);
+        const stock = realClient ? (realClient.stockBotellones || 0) : 0;
+
+        return `
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
+            <td style="padding:10px;">
+                <div style="font-weight:500;">${c.name}</div>
+                <div style="font-size:11px; color:var(--text-muted);">${stock > 0 ? 'Stock: ' + stock : ''}</div>
+            </td>
+            <td style="padding:10px; text-align:right;">${c.count}</td>
+            <td style="padding:10px; text-align:right;">${stock}</td>
+            <td style="padding:10px; text-align:right; color:var(--success); font-weight:bold;">${formatCurrency(c.total)}</td>
+        </tr>
+    `}).join('');
 }
 
-// --- FILTERING & EXPORT ---
-
-window.filtrarReporte = function () {
+export function filtrarReporte() {
     const startStr = document.getElementById('reportStart').value;
     const endStr = document.getElementById('reportEnd').value;
 
@@ -234,21 +326,16 @@ window.filtrarReporte = function () {
         return;
     }
 
-    // Force Local Time
     const start = new Date(startStr + 'T00:00:00');
     const end = new Date(endStr + 'T23:59:59');
 
-    // Filter
     const filtered = window.allRecentVentas.filter(v => {
         const d = getFechaFromId(v);
         return d >= start && d <= end;
     });
 
-    // Update Global State for Exports
     window.currentFilteredVentas = filtered;
-
-    // Update UI
-    window.actualizarReportes(filtered);
+    actualizarReportes(filtered);
 
     Swal.fire({
         title: 'Filtro Aplicado',
@@ -259,11 +346,11 @@ window.filtrarReporte = function () {
     });
 }
 
-window.resetFiltro = function () {
+export function resetFiltro() {
     document.getElementById('reportStart').value = '';
     document.getElementById('reportEnd').value = '';
     window.currentFilteredVentas = null;
-    window.actualizarReportes(window.ventasDelDia); // Restore
+    actualizarReportes(window.ventasDelDia); // Restore
     Swal.fire({
         title: 'Filtro Reiniciado',
         text: 'Mostrando registros originales.',
@@ -273,23 +360,13 @@ window.resetFiltro = function () {
     });
 }
 
-// Helper for date
-function getFechaFromId(registro) {
-    if (registro.timestamp) return new Date(registro.timestamp);
-    if (registro.createdAt && registro.createdAt.seconds) return new Date(registro.createdAt.seconds * 1000);
-    return new Date();
-}
-
-// -- EXPORT PDF --
-window.exportarPDF = function () {
+export function exportarPDF() {
     if (typeof jspdf === 'undefined') { alert('Librería PDF no cargada'); return; }
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
 
-    // Data to print
     const dataToPrint = window.currentFilteredVentas || window.ventasDelDia;
 
-    // Title
     doc.setFontSize(18);
     doc.text('Reporte de Ventas - AWA System', 14, 22);
 
@@ -305,11 +382,9 @@ window.exportarPDF = function () {
         doc.setTextColor(100);
     }
 
-    // Summary
     const net = document.getElementById('repNeto') ? document.getElementById('repNeto').textContent : '-';
     doc.text(`Rentabilidad Neta: ${net}`, 14, 45);
 
-    // Table
     const tableColumn = ["Hora", "Tipo", "Detalle", "Total"];
     const tableRows = [];
 
@@ -332,67 +407,13 @@ window.exportarPDF = function () {
     doc.save(`Reporte_AWA_${Date.now()}.pdf`);
 }
 
-// -- CLIENT REPORT GEN (Legacy support) --
-window.generarReporteClientes = function (data) {
-    const tableBody = document.getElementById('topClientsTable');
-    if (!tableBody) return;
-
-    if (!data || data.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:15px; color:var(--text-muted);">Sin datos</td></tr>';
-        return;
-    }
-
-    const clientStats = {};
-
-    data.forEach(v => {
-        if (v.tipo === 'Gasto') return;
-        // Group by ID if available, else Name
-        const key = v.clienteId || v.clienteNombre || 'Casual';
-        const name = v.clienteNombre || (v.clienteId ? 'Cliente ' + v.clienteId : 'Casual');
-
-        if (!clientStats[key]) {
-            clientStats[key] = { id: v.clienteId, name: name, count: 0, total: 0 };
-        }
-        clientStats[key].count += 1;
-        clientStats[key].total += (Number(v.total) || 0);
-    });
-
-    // Convert to Array and Sort
-    const sortedClients = Object.values(clientStats).sort((a, b) => b.total - a.total).slice(0, 10); // Top 10
-
-    if (sortedClients.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:15px; color:var(--text-muted);">Sin clientes registrados</td></tr>';
-        return;
-    }
-
-    tableBody.innerHTML = sortedClients.map(c => {
-        // Try to find real client data for Stock Comparison if available globally
-        // Assumes window.listaClientes is available
-        const realClient = (window.listaClientes || []).find(x => x.id === c.id);
-        const stock = realClient ? (realClient.stockBotellones || 0) : 0;
-
-        return `
-        <tr style="border-bottom:1px solid rgba(255,255,255,0.05);">
-            <td style="padding:10px;">
-                <div style="font-weight:500;">${c.name}</div>
-                <div style="font-size:11px; color:var(--text-muted);">${stock > 0 ? 'Stock: ' + stock : ''}</div>
-            </td>
-            <td style="padding:10px; text-align:right;">${c.count}</td>
-            <td style="padding:10px; text-align:right;">${stock}</td>
-            <td style="padding:10px; text-align:right; color:var(--success); font-weight:bold;">${formatCurrency(c.total)}</td>
-        </tr>
-    `}).join('');
-}
-
-// --- HISTORIAL FILTERING ---
-window.filtrarHistorial = function () {
+export function filtrarHistorial() {
     const dateVal = document.getElementById('historyDateFilter') ? document.getElementById('historyDateFilter').value : '';
     const typeVal = document.getElementById('historyTypeFilter') ? document.getElementById('historyTypeFilter').value : '';
     const tbody = document.getElementById('historyTableBody') || document.getElementById('tablaRegistros');
 
     let filtered = window.allRecentVentas || [];
 
-    // Filter by Date
     if (dateVal && dateVal !== 'todo') {
         const now = new Date();
         const todayStr = now.toDateString();
@@ -419,19 +440,39 @@ window.filtrarHistorial = function () {
         });
     }
 
-    // Filter by Type
     if (typeVal && typeVal !== 'todos') {
         filtered = filtered.filter(v => (v.tipo || '') === typeVal);
     }
 
-    // Update Table
+    // --- RBAC DATA FILTERING ---
+    const role = window.currentUserRole;
+    const email = window.currentUserEmail;
+
+    if (role === 'camion') {
+        // Show only 'Camión' OR their own expenses
+        filtered = filtered.filter(v =>
+            v.tipo === 'Camión' ||
+            (v.tipo === 'Gasto' && v.usuario === email)
+        );
+    } else if (role === 'planta') {
+        // Planta: Planta, Produccion (custom view?), Gasto, Historial (Planta/Local)
+        filtered = filtered.filter(v =>
+            v.tipo === 'Local' ||
+            v.tipo === 'Planta' ||
+            v.tipo === 'Gasto' ||
+            (v.usuario && v.usuario === email)
+        );
+    }
+    // Admin sees everything (no filter)
+
     if (tbody) {
         if (filtered.length === 0) {
             tbody.innerHTML = '<tr><td colspan="8" style="color:#888; font-style:italic; text-align:center; padding:20px;">No se encontraron registros</td></tr>';
         } else {
-            if (typeof renderTableRows === 'function') {
-                renderTableRows(tbody, filtered);
-            } else if (window.renderTableRows) {
+            // Need to bridge renderTableRows too, or use window.renderTableRows
+            // Assuming renderTableRows is global or we import it?
+            // Actually renderTableRows is inside script.js - we can call it if it's window attached
+            if (typeof window.renderTableRows === 'function') {
                 window.renderTableRows(tbody, filtered);
             } else {
                 console.warn("renderTableRows not found");
@@ -439,30 +480,15 @@ window.filtrarHistorial = function () {
         }
     }
 }
-// --- 🚀 QUICK FILTERS LOGIC ---
 
-window.app = window.app || {};
-
-window.app.toggleCustomDate = function (btn) {
-    const panel = document.getElementById('customDatePanel');
-    const isHidden = panel.style.display === 'none';
-    panel.style.display = isHidden ? 'block' : 'none';
-
-    // Update button state
-    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
-    if (isHidden && btn) btn.classList.add('active');
-};
-
-window.app.applyQuickFilter = function (type, btn) {
-    // 1. UI Updates
+// Quick filter helper
+export function applyQuickFilter(type, btn) {
     document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
     if (btn) btn.classList.add('active');
 
-    // Hide Custom Panel if open
     const panel = document.getElementById('customDatePanel');
     if (panel) panel.style.display = 'none';
 
-    // 2. Date Logic
     const startInput = document.getElementById('reportStart');
     const endInput = document.getElementById('reportEnd');
     const today = new Date();
@@ -481,9 +507,8 @@ window.app.applyQuickFilter = function (type, btn) {
             end.setDate(today.getDate() - 1);
             break;
         case 'week':
-            // Start of current week (Monday)
             start = new Date();
-            const day = start.getDay() || 7; // Get current day (1-7, Mon-Sun)
+            const day = start.getDay() || 7;
             if (day !== 1) start.setDate(today.getDate() - (day - 1));
             end = new Date();
             break;
@@ -493,9 +518,7 @@ window.app.applyQuickFilter = function (type, btn) {
             break;
     }
 
-    // Set Inputs (YYYY-MM-DD)
     if (start && end) {
-        // Helper to format local date YYYY-MM-DD
         const fmt = (d) => {
             const y = d.getFullYear();
             const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -506,7 +529,15 @@ window.app.applyQuickFilter = function (type, btn) {
         if (startInput) startInput.value = fmt(start);
         if (endInput) endInput.value = fmt(end);
 
-        // Trigger Filter
-        if (window.filtrarReporte) window.filtrarReporte();
+        filtrarReporte();
     }
-};
+}
+
+export function toggleCustomDate(btn) {
+    const panel = document.getElementById('customDatePanel');
+    const isHidden = panel.style.display === 'none';
+    panel.style.display = isHidden ? 'block' : 'none';
+
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+    if (isHidden && btn) btn.classList.add('active');
+}
