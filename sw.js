@@ -1,10 +1,10 @@
-const CACHE_NAME = 'awa-v105';
+const CACHE_NAME = 'bizcore-v170';
 const ASSETS = [
     './',
     './index.html',
     './menu.html',
     './css/main.css',
-    './js/script.js',
+    './script.js',
     './js/auth.js',
     './js/firebase-config.js',
     './img/logo.png',

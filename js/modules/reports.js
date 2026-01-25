@@ -90,15 +90,26 @@ export function actualizarReportes(data = null) {
     // Trend Chart (Hourly Sales)
     const ctxTrend = document.getElementById('trendChart');
     if (ctxTrend) {
-        // Group by Hour
+        // Group by Hour (range 6 AM to 10 PM)
         const hours = {};
-        for (let i = 8; i <= 20; i++) hours[`${i}:00`] = 0; // Init 8am to 8pm
+        for (let i = 6; i <= 22; i++) hours[`${i}:00`] = 0;
 
         dataSource.forEach(v => {
             if (v.tipo === 'Gasto') return;
-            if (v.hora) {
-                const h = v.hora.split(':')[0] + ':00';
-                if (hours[h] !== undefined) hours[h] += (Number(v.total) || 0);
+
+            // Priority 1: Use helper to get Date object
+            const d = getFechaFromId(v);
+            let hNum = d.getHours();
+
+            // Priority 2: Fallback to .hora string if getFechaFromId returned "now" 
+            // but the record has a legacy .hora string (e.g. "14:30")
+            if (!v.timestamp && (!v.createdAt || !v.createdAt.seconds) && v.hora) {
+                hNum = parseInt(v.hora.split(':')[0]);
+            }
+
+            const hKey = `${hNum}:00`;
+            if (hours[hKey] !== undefined) {
+                hours[hKey] += (Number(v.total) || 0);
             }
         });
 
@@ -368,7 +379,7 @@ export function exportarPDF() {
     const dataToPrint = window.currentFilteredVentas || window.ventasDelDia;
 
     doc.setFontSize(18);
-    doc.text('Reporte de Ventas - AWA System', 14, 22);
+    doc.text('Reporte de Ventas - BizCore System', 14, 22);
 
     doc.setFontSize(11);
     doc.setTextColor(100);
@@ -404,7 +415,7 @@ export function exportarPDF() {
         startY: 55,
     });
 
-    doc.save(`Reporte_AWA_${Date.now()}.pdf`);
+    doc.save(`Reporte_BizCore_${Date.now()}.pdf`);
 }
 
 export function filtrarHistorial() {

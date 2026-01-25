@@ -3,8 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema AWA | Gestión de Ventas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>BizCore | Gestión de Ventas</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -31,13 +31,16 @@
 
     <!-- Custom CSS -->
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/main.css?v=DATA_FIX">
+    <link rel="stylesheet" href="css/main.css?v=PREMIUM_V33">
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#001e36">
+    <meta name="theme-color" content="#0e2036">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <!-- Logo removed from touch icon as well if desired, but keeping for now as it's metadata -->
-    <link rel="apple-touch-icon" href="img/logo.png">
+    <link rel="apple-touch-icon" href="img/icon-512.png">
+    <link rel="icon" href="img/favicon.png" type="image/png">
 
     <!-- Service Worker Registration -->
     <script>
@@ -202,7 +205,8 @@
         style="display:flex;height:100dvh;align-items:center;justify-content:center;background:var(--bg-dark); position: relative;">
         <div class="section-card" style="width:100%;max-width:400px;margin:20px;text-align:center">
             <div style="margin-bottom:30px">
-                <img src="img/logo.png" alt="AWA System" style="width: 120px; height: auto; margin-bottom: 10px;">
+                <img src="img/new logo/logofinal2.png" alt="BizCore System"
+                    style="width: 170px; height: auto; margin-bottom: 10px;">
                 <p style="color:var(--text-muted)">Inicia sesión para continuar</p>
             </div>
             <form id="loginForm" style="display:flex;flex-direction:column;gap:16px">
@@ -227,7 +231,7 @@
         <aside class="sidebar">
             <div class="brand desktop-only">
                 <div class="logo">
-                    <img src="img/logo.png" alt="AWA Logo" style="max-width: 140px; height: auto;">
+                    <img src="img/new logo/logofinal2.png" alt="BizCore Logo" style="max-width: 170px; height: auto;">
                 </div>
             </div>
 
@@ -243,6 +247,10 @@
                 <button class="nav-btn mobile-hidden" id="nav-camion" data-tab="camion">
                     <i class="bi bi-truck"></i>
                     <span>Camión</span>
+                </button>
+                <button class="nav-btn mobile-hidden" id="nav-ruta" data-tab="ruta">
+                    <i class="bi bi-list-check"></i>
+                    <span>Ruta Hoy</span>
                 </button>
                 <button class="nav-btn mobile-hidden" id="nav-gastos" data-tab="gastos">
                     <i class="bi bi-wallet2"></i>
@@ -264,6 +272,10 @@
                     <i class="bi bi-people"></i>
                     <span>Clientes</span>
                 </button>
+                <button class="nav-btn mobile-hidden" id="nav-empleados" data-tab="empleados">
+                    <i class="bi bi-person-badge"></i>
+                    <span>Empleados</span>
+                </button>
                 <button class="nav-btn mobile-hidden" id="nav-config" data-tab="config">
                     <i class="bi bi-gear"></i>
                     <span>Config</span>
@@ -277,11 +289,13 @@
             </nav>
 
             <div class="nav-footer">
-                <button class="btn-icon" id="btnDataMenu" title="Datos">
-                    <i class="bi bi-database"></i>
+                <button class="nav-btn" data-tab="perfil" id="nav-perfil">
+                    <i class="bi bi-person-circle"></i>
+                    <span>Perfil</span>
                 </button>
-                <button class="btn-icon danger" id="btnLogout" title="Cerrar Sesión">
-                    <i class="bi bi-box-arrow-right"></i>
+                <button class="btn-premium-logout" id="btnLogout">
+                    <i class="bi bi-power"></i>
+                    <span>Cerrar Sesión</span>
                 </button>
                 <!-- Hidden file input for restore -->
                 <input type="file" id="restoreFileHeader" accept=".json" style="display:none"
@@ -292,16 +306,33 @@
         <!-- MAIN CONTENT -->
         <main class="main-content">
 
-            <!-- TOP BAR -->
-            <header class="top-bar">
-                <div>
-                    <div class="page-title" id="pageTitle"><span style="color:var(--primary)">AWA</span> System</div>
-                    <div class="date-display" id="currentDate">Cargando fecha...</div>
+            <!-- PREMIUM TOP BAR -->
+            <header class="top-bar-premium">
+                <div class="bar-left">
+                    <div class="desktop-header-info">
+                        <div class="page-title" id="pageTitle"><span style="color:var(--primary)">BizCore</span> System
+                        </div>
+                        <div class="date-display" id="currentDate">Cargando fecha...</div>
+                    </div>
+                    <img src="img/new logo/logofinal2.png" class="mobile-head-logo" alt="Logo">
                 </div>
-                <div class="mobile-actions">
-                    <button id="btnMobileLogout">
-                        <i class="bi bi-box-arrow-right"></i>
-                    </button>
+
+                <div class="bar-right">
+                    <!-- Notification Bell -->
+                    <div class="notif-icon-wrapper" id="btnNotifRuta" onclick="mostrarSeccion('ruta'); resetNotifDot();"
+                        title="Ver Ruta">
+                        <i class="bi bi-bell-fill"></i>
+                        <span class="notification-dot-red" id="rutaNotifDot" style="display:none;"></span>
+                    </div>
+
+                    <!-- User Profile Group -->
+                    <div class="user-profile-group">
+                        <div class="profile-trigger" onclick="mostrarSeccion('perfil')" title="Mi Perfil">
+                            <div class="avatar-mini-circle" id="topBarAvatar">
+                                <i class="bi bi-person-fill"></i>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </header>
 
@@ -522,27 +553,7 @@
                             </div>
                         </div>
 
-                        <div class="action-group">
-                            <label>Modalidad</label>
-                            <div class="input-row">
-                                <div class="flex-1">
-                                    <label class="radio-card">
-                                        <input type="radio" name="camionMode" value="solo">
-                                        <span class="radio-label">
-                                            <i class="bi bi-person-fill"></i> Solo
-                                        </span>
-                                    </label>
-                                </div>
-                                <div class="flex-1">
-                                    <label class="radio-card">
-                                        <input type="radio" name="camionMode" value="ayudante">
-                                        <span class="radio-label">
-                                            <i class="bi bi-people-fill"></i> Ayudante
-                                        </span>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
+
 
                         <div class="action-group" style="position:relative;">
                             <label for="commentCamion">Comentario (Opcional)</label>
@@ -557,8 +568,11 @@
                     </div>
                 </div>
 
-                <!-- Ruta del Dia Section -->
-                <div class="section-card" style="margin-top:20px;">
+            </div>
+
+            <!-- VIEW: RUTA -->
+            <div id="view-ruta" class="view">
+                <div class="section-card">
                     <div
                         style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:15px;">
                         <h3 style="margin:0; font-size:18px;">📋 Ruta de Hoy</h3>
@@ -575,7 +589,7 @@
                         </div>
                     </div>
 
-                    <!-- NEW: DEBT BUTTON FOR CAMION -->
+                    <!-- NEW: DEBT BUTTON FOR CAMION (Now in Ruta) -->
                     <button onclick="toggleDebtsModal()" class="btn full-width"
                         style="margin-bottom:20px; background:rgba(231, 29, 54, 0.1); color:#e71d36; border:1px solid #e71d36; font-weight:600;">
                         <i class="bi bi-cash-coin"></i> Cuentas por Cobrar
@@ -586,7 +600,6 @@
                         <p style="text-align:center; color:var(--text-muted);">Cargando ruta...</p>
                     </div>
                 </div>
-
             </div>
 
             <!-- VIEW: GASTOS -->
@@ -991,62 +1004,61 @@
             <!-- VIEW: CLIENTES -->
             <div id="view-clientes" class="view">
                 <div style="height:100%; display:flex; flex-direction:column;">
-                    <div
-                        style="padding:15px; background:var(--bg-dark); position:sticky; top:0; z-index:10; border-bottom:1px solid var(--border);">
-                        <!-- Header & Form Button -->
-                        <div class="add-client-form"
-                            style="background:rgba(255,255,255,0.03); padding:15px; border-radius:12px; margin-bottom:15px; border:1px solid var(--border);">
-                            <h4
-                                style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
-                                <span>👥 Gestión de Clientes</span>
-                                <!-- Toggle Button inside header -->
-                                <button id="btnToggleClientForm" onclick="toggleNewClientForm()"
-                                    class="btn btn-sm btn-outline" style="font-size:12px;">
-                                    <i class="bi bi-plus-circle"></i> Nuevo
-                                </button>
+
+                    <!-- Premium Header -->
+                    <div class="view-header-premium">
+                        <h2 class="view-title-premium">Gestión de Clientes</h2>
+                        <button id="btnToggleClientForm" onclick="toggleNewClientForm()" class="btn-glow-premium">
+                            <i class="bi bi-plus-lg"></i> Nuevo
+                        </button>
+                    </div>
+
+                    <!-- Sleek Search Bar -->
+                    <div class="search-container-premium">
+                        <i class="bi bi-search search-icon-premium"></i>
+                        <input type="text" id="busquedaCliente" class="search-input-premium"
+                            placeholder="Buscar cliente..." onkeyup="filtrarClientes()">
+                    </div>
+
+                    <!-- Collapsible Form (Keep existing logic but refine container) -->
+                    <div id="clientFormContainer" style="display:none; padding: 0 24px 20px;">
+                        <div class="glass-card" style="padding: 20px; border-radius: 20px;">
+                            <h4 id="formClientTitle"
+                                style="margin-bottom:15px; font-size:16px; color:var(--primary); text-transform:uppercase; font-weight:700;">
+                                Nuevo Cliente
                             </h4>
-
-                            <!-- Collapsible Form -->
-                            <div id="clientFormContainer" style="display:none; margin-top:15px;">
-                                <h4 id="formClientTitle"
-                                    style="margin-bottom:12px; font-size:14px; color:var(--text-muted); text-transform:uppercase;">
-                                    Nuevo Cliente</h4>
-                                <input type="hidden" id="editClientId">
-                                <input type="hidden" id="newClientLat">
-                                <input type="hidden" id="newClientLng">
-                                <div
-                                    style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
-                                    <input type="text" id="newClientName" placeholder="Nombre completo">
-                                    <input type="text" id="newClientPhone" placeholder="Teléfono">
-                                </div>
-                                <div
-                                    style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:10px; margin-bottom:10px;">
-                                    <input type="text" id="newClientAddress" placeholder="Dirección / Sector">
-                                    <input type="number" id="newClientStock" placeholder="Stock"
-                                        title="Cantidad de botellones">
-                                    <input type="number" id="newClientPrice" placeholder="Precio (RD$)" value="30">
-                                </div>
-                                <div style="display:flex; gap:10px;">
-                                    <button id="btnSaveClient" onclick="guardarClienteNuevo()"
-                                        class="btn btn-primary full-width">
-                                        <i class="bi bi-plus-circle"></i> Guardar Cliente
-                                    </button>
-                                </div>
-                                <button class="btn btn-outline full-width" id="btnCancelEdit"
-                                    style="display:none; margin-top:10px;"
-                                    onclick="cancelarEdicionCliente()">Cancelar</button>
+                            <input type="hidden" id="editClientId">
+                            <input type="hidden" id="newClientLat">
+                            <input type="hidden" id="newClientLng">
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+                                <input type="text" id="newClientName" placeholder="Nombre completo"
+                                    class="form-control">
+                                <input type="text" id="newClientPhone" placeholder="Teléfono" class="form-control">
                             </div>
-                        </div>
-
-                        <!-- Search -->
-                        <div class="search-bar" style="margin-bottom:0;">
-                            <input type="text" id="busquedaCliente" placeholder="Buscar cliente..."
-                                onkeyup="filtrarClientes()" style="padding-left:15px;">
+                            <div
+                                style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:12px; margin-bottom:12px;">
+                                <input type="text" id="newClientAddress" placeholder="Dirección / Sector"
+                                    class="form-control">
+                                <input type="number" id="newClientStock" placeholder="Stock"
+                                    title="Cantidad de botellones" class="form-control">
+                                <input type="number" id="newClientPrice" placeholder="Precio" value="30"
+                                    class="form-control">
+                            </div>
+                            <div style="display:flex; gap:12px;">
+                                <button id="btnSaveClient" onclick="guardarClienteNuevo()"
+                                    class="btn btn-primary full-width">
+                                    <i class="bi bi-check-circle"></i> Guardar Cliente
+                                </button>
+                                <button class="btn btn-outline" id="btnCancelEdit" style="display:none;"
+                                    onclick="cancelarEdicionCliente()">
+                                    Cancelar
+                                </button>
+                            </div>
                         </div>
                     </div>
 
                     <!-- List -->
-                    <div id="listaClientesContainer" class="client-list" style="flex:1; overflow-y:auto; padding:15px;">
+                    <div id="listaClientesContainer" class="client-list-grid" style="flex:1; overflow-y:auto;">
                         <!-- Populated by JS -->
                     </div>
                 </div>
@@ -1054,19 +1066,184 @@
 
             <!-- VIEW: CONFIG -->
             <div id="view-config" class="view">
-                <div class="section-card">
-                    <div class="card-header">
-                        <h3>⚙️ Configuración</h3>
+                <div class="section-card-premium">
+                    <div class="card-header-premium">
+                        <div class="header-title-group">
+                            <div class="header-icon-box bg-primary"><i class="bi bi-gear-fill"></i></div>
+                            <div>
+                                <h3 class="premium-title">Configuración del Sistema</h3>
+                                <p class="premium-subtitle">Gestiona precios y parámetros generales</p>
+                            </div>
+                        </div>
                     </div>
-                    <div
-                        style="padding:40px; text-align:center; color:var(--text-muted); border:1px dashed var(--border); border-radius:12px; margin-top:20px;">
-                        <i class="bi bi-tools" style="font-size:32px; margin-bottom:10px; display:block;"></i>
-                        <p>Panel de administración en construcción.</p>
-                        <small>Próximamente: Gestión de Precios Base y Usuarios.</small>
+
+                    <div class="config-grid">
+                        <!-- Precios de Venta -->
+                        <div class="config-group">
+                            <h4 class="group-title"><i class="bi bi-tag-fill"></i> Precios de Venta (RD$)</h4>
+                            <div class="input-modern-row">
+                                <div class="input-modern-field">
+                                    <label>Venta Local</label>
+                                    <div class="input-with-icon">
+                                        <i class="bi bi-shop"></i>
+                                        <input type="number" id="configPrecioLocal" placeholder="25">
+                                    </div>
+                                </div>
+                                <div class="input-modern-field">
+                                    <label>Venta Camión</label>
+                                    <div class="input-with-icon">
+                                        <i class="bi bi-truck"></i>
+                                        <input type="number" id="configPrecioCamion" placeholder="30">
+                                    </div>
+                                </div>
+                                <div class="input-modern-field">
+                                    <label>Delivery</label>
+                                    <div class="input-with-icon">
+                                        <i class="bi bi-bicycle"></i>
+                                        <input type="number" id="configPrecioDelivery" placeholder="35">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- System Info (Read Only for now) -->
+                        <div class="config-group">
+                            <h4 class="group-title"><i class="bi bi-info-circle-fill"></i> Información del Sistema</h4>
+                            <div class="info-modern-row">
+                                <div class="info-item">
+                                    <span>Versión</span>
+                                    <strong>v2.0 Premium</strong>
+                                </div>
+                                <div class="info-item">
+                                    <span>Última Actualización</span>
+                                    <strong>Enero 2026</strong>
+                                </div>
+                                <div class="info-item">
+                                    <span>Licencia</span>
+                                    <strong class="text-primary">Activa</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="config-actions">
+                        <button class="btn-confirm-premium full-width" onclick="saveConfig()" id="btnSaveConfig">
+                            <i class="bi bi-cloud-check"></i> Guardar Cambios
+                        </button>
                     </div>
                 </div>
             </div>
 
+            <!-- VIEW: PERFIL -->
+            <div id="view-perfil" class="view">
+                <div class="profile-container-premium">
+                    <div class="profile-header-premium">
+                        <div class="profile-avatar-container">
+                            <div class="profile-avatar" id="profileAvatar">
+                                <i class="bi bi-building"></i>
+                            </div>
+                            <button class="btn-avatar-edit"
+                                onclick="document.getElementById('profilePhotoInput').click()">
+                                <i class="bi bi-camera"></i>
+                            </button>
+                            <input type="file" id="profilePhotoInput" hidden accept="image/*">
+                        </div>
+                        <h2 id="profileBusinessName">Nombre de la Empresa</h2>
+                        <p id="profileUserEmail">usuario@correo.com</p>
+                    </div>
+
+                    <div class="profile-grid-premium">
+                        <!-- Empresa Card -->
+                        <div class="section-card-premium">
+                            <div class="card-title-premium">
+                                <i class="bi bi-briefcase"></i> Datos de Empresa
+                            </div>
+                            <div class="profile-field-group">
+                                <label>Nombre del Negocio</label>
+                                <div class="field-value-wrapper">
+                                    <input type="text" id="editBusinessName" value="BizCore System">
+                                    <button class="btn-field-save" id="btnSaveBusinessName"><i
+                                            class="bi bi-check-lg"></i></button>
+                                </div>
+                            </div>
+                            <div class="profile-field-group">
+                                <label>Sector / Industria</label>
+                                <div class="field-value-wrapper">
+                                    <input type="text" value="Agua Purificada" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Usuario Card -->
+                        <div class="section-card-premium">
+                            <div class="card-title-premium">
+                                <i class="bi bi-person-badge"></i> Cuenta de Usuario
+                            </div>
+                            <div class="profile-field-group">
+                                <label>Usuario Actual</label>
+                                <div class="field-value-wrapper">
+                                    <span id="profileRoleBadge" class="premium-badge">Admin</span>
+                                </div>
+                            </div>
+                            <div class="profile-field-group">
+                                <label>Sesión Iniciada como</label>
+                                <div class="field-value-wrapper">
+                                    <span id="profileEmailDisplay">admin@awa.com</span>
+                                </div>
+                            </div>
+                            <div class="profile-actions-footer">
+                                <button class="btn btn-outline" style="width:100%"
+                                    onclick="alert('Funcionalidad próximamente: Cambio de contraseña')">
+                                    <i class="bi bi-key"></i> Cambiar Contraseña
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Mobile Specific Logout -->
+                    <div class="mobile-logout-section" style="margin-top:20px; text-align:center;">
+                        <button class="btn-logout-premium" onclick="logout()"
+                            style="width:100%; border-radius:15px; padding:15px; background:#FF5F6D; color:white; border:none; font-weight:700;">
+                            <i class="bi bi-power"></i> Cerrar Sesión
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: EMPLEADOS -->
+            <div id="view-empleados" class="view" style="display:none;">
+                <div class="header-tools"
+                    style="margin-bottom:20px; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:15px;">
+                    <div class="stats-mini" style="display:flex; gap:20px;">
+                        <div class="stat-item">
+                            <div class="label" style="font-size:12px; opacity:0.7;">Total Empleados</div>
+                            <div class="value" id="totalEmpCount"
+                                style="font-size:20px; font-weight:bold; color:var(--primary);">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="label" style="font-size:12px; opacity:0.7;">Pagar este mes</div>
+                            <div class="value" id="totalNominaPagar"
+                                style="font-size:20px; font-weight:bold; color:#27ae60;">
+                                RD$ 0</div>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <label style="font-size:12px; display:flex; align-items:center; gap:5px; cursor:pointer;"
+                            title="Ver empleados que han sido dados de baja">
+                            <input type="checkbox" id="chkShowArchived"
+                                onchange="window.verEmpleadosArchivados = this.checked; if(window.actualizarEmpleadosVisual) window.actualizarEmpleadosVisual();">
+                            Ver Archivados
+                        </label>
+                        <button class="btn btn-primary" onclick="toggleNuevoEmpleadoModal()">
+                            <i class="bi bi-person-plus"></i> Nuevo
+                        </button>
+                    </div>
+                </div>
+
+                <div id="grid-empleados" class="empleados-grid"
+                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
+                    <!-- JS Populated -->
+                </div>
+            </div>
         </main>
     </div>
 
@@ -1097,6 +1274,99 @@
             </div>
         </div>
     </div>
+    <!-- MODAL NUEVO EMPLEADO -->
+    <div id="modalNuevoEmpleado" class="modal-overlay" style="display:none;"
+        onclick="if(event.target === this) toggleNuevoEmpleadoModal()">
+        <div class="modal-content" style="max-width:400px;">
+            <div class="modal-header">
+                <h3><i class="bi bi-person-plus"></i> Registro de Empleado</h3>
+                <button onclick="toggleNuevoEmpleadoModal()" class="btn-close"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="formNuevoEmpleado" class="quick-actions">
+                    <input type="hidden" id="empIdEdit"> <!-- Hidden ID for Editing -->
+                    <div class="action-group" style="text-align:center;">
+                        <input type="file" id="empPhotoInput" accept="image/*" style="display:none;"
+                            onchange="window.handleEmpPhotoSelect(this)">
+                        <div class="photo-upload-zone" onclick="document.getElementById('empPhotoInput').click()">
+                            <img id="empPhotoPreview" src="" style="display:none;">
+                            <div id="empPhotoPlaceholder">
+                                <i class="bi bi-camera"></i><br>
+                                <span>Subir Foto</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="action-group">
+                        <label>Nombre Completo</label>
+                        <input type="text" id="empNombre" class="form-control" required placeholder="Ej: Juan Perez">
+                    </div>
+                    <div class="action-group" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                        <div>
+                            <label>Cédula / ID</label>
+                            <input type="text" id="empCedula" class="form-control" placeholder="001-0000000-0">
+                        </div>
+                        <div>
+                            <label>Teléfono</label>
+                            <input type="tel" id="empTelefono" class="form-control" placeholder="809-555-5555">
+                        </div>
+                    </div>
+                    <div class="action-group">
+                        <label>Cargo / Rol</label>
+                        <select id="empCargo" class="form-control">
+                            <option value="Delivery">Delivery</option>
+                            <option value="Chofer">Chofer</option>
+                            <option value="Ayudante">Ayudante</option>
+                            <option value="Planta">Planta</option>
+                            <option value="Admin">Administrador</option>
+                        </select>
+                    </div>
+                    <div class="action-group">
+                        <label>Sueldo Base (Opcional)</label>
+                        <input type="number" id="empSueldo" class="form-control" placeholder="RD$ 0.00">
+                    </div>
+                    <div class="action-group">
+                        <label>Fecha Ingreso</label>
+                        <input type="date" id="empFecha" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100" style="margin-top:20px;">
+                        <i class="bi bi-save"></i> Guardar Empleado
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ADELANTOS -->
+    <div id="modalAdelanto" class="modal-overlay" style="display:none;"
+        onclick="if(event.target === this) toggleAdelantoModal()">
+        <div class="modal-content" style="max-width:350px;">
+            <div class="modal-header">
+                <h3><i class="bi bi-cash-stack"></i> Registrar Adelanto</h3>
+                <button onclick="toggleAdelantoModal()" class="btn-close"><i class="bi bi-x-lg"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="formAdelanto" class="quick-actions">
+                    <input type="hidden" id="adelantoEmpId">
+                    <div class="action-group">
+                        <label>Empleado</label>
+                        <input type="text" id="adelantoEmpNombre" class="form-control" readonly style="opacity:0.7">
+                    </div>
+                    <div class="action-group">
+                        <label>Monto (RD$)</label>
+                        <input type="number" id="adelantoMonto" class="form-control" required placeholder="Ej: 500">
+                    </div>
+                    <div class="action-group">
+                        <label>Nota / Motivo</label>
+                        <input type="text" id="adelantoNota" class="form-control" placeholder="Ej: Gasolina, Comida...">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100" style="margin-top:20px;">
+                        <i class="bi bi-check-lg"></i> Guardar Adelanto
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <button id="btnCancelEdit" onclick="cancelarEdicionCliente()" class="btn btn-outline" style="display:none;">
         Cancelar
     </button>
@@ -1245,6 +1515,24 @@
                 <h3>Producción</h3>
             </div>
 
+            <div class="stat-card" onclick="mostrarSeccion('empleados')"
+                style="cursor:pointer; text-align:center; padding:20px;">
+                <div class="icon-box"
+                    style="background:rgba(236,72,153,0.1); color:#ec4899; width:50px; height:50px; margin:0 auto 10px; display:flex; align-items:center; justify-content:center; border-radius:12px;">
+                    <i class="bi bi-person-badge" style="font-size:24px;"></i>
+                </div>
+                <h3>Empleados</h3>
+            </div>
+
+            <div class="stat-card" onclick="mostrarSeccion('perfil')"
+                style="cursor:pointer; text-align:center; padding:20px;">
+                <div class="icon-box"
+                    style="background:rgba(0,193,182,0.1); color:#00c1b6; width:50px; height:50px; margin:0 auto 10px; display:flex; align-items:center; justify-content:center; border-radius:12px;">
+                    <i class="bi bi-person-circle" style="font-size:24px;"></i>
+                </div>
+                <h3>Perfil</h3>
+            </div>
+
             <div class="stat-card" onclick="mostrarSeccion('config')"
                 style="cursor:pointer; text-align:center; padding:20px;">
                 <div class="icon-box"
@@ -1258,7 +1546,7 @@
                 style="cursor:pointer; text-align:center; padding:20px; border:1px solid rgba(239,68,68,0.3);">
                 <div class="icon-box"
                     style="background:rgba(239,68,68,0.1); color:#ef4444; width:50px; height:50px; margin:0 auto 10px; display:flex; align-items:center; justify-content:center; border-radius:12px;">
-                    <i class="bi bi-box-arrow-right" style="font-size:24px;"></i>
+                    <i class="bi bi-power" style="font-size:24px;"></i>
                 </div>
                 <h3 style="color:#ef4444;">Salir</h3>
             </div>
@@ -1271,17 +1559,16 @@
 
     <!-- 🚀 MODULES ENTRY POINT -->
     <!-- Loads modules (Utils, Auth, Config, Clients, Reports) and bridges them to Window -->
-    <script type="module" src="js/app.js?v=MODULE_V3"></script>
+    <script type="module" src="js/app.js?v=MODULE_V9"></script>
 
     <!-- MOBILE DRAWER (FINAL REFACTOR v81) -->
     <!-- Renamed ID to bypass ANY existing CSS rules in main.css -->
-    <div id="mobileDrawer_v81"
-        style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); z-index:999999; flex-direction:column; justify-content:flex-end;"
+    <div id="mobileDrawer_v81" class="mobile-drawer"
+        style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:999999; flex-direction:column; justify-content:flex-end;"
         onclick="if(event.target===this) toggleMobileDrawer()">
 
-        <!-- Inline Styles for Content to guarantee visibility -->
-        <div class="drawer-content"
-            style="background: #1e293b; width:100%; border-radius: 20px 20px 0 0; padding:20px; box-sizing:border-box;">
+        <!-- Styles moved to main.css for stability -->
+        <div class="drawer-content">
 
 
             <div class="drawer-header">
@@ -1297,6 +1584,10 @@
                     <div class="icon-box"><i class="bi bi-truck"></i></div>
                     <span>Camión</span>
                 </button>
+                <button class="drawer-btn" id="drawer-ruta" data-tab="ruta">
+                    <div class="icon-box"><i class="bi bi-list-check"></i></div>
+                    <span>Ruta Hoy</span>
+                </button>
                 <button class="drawer-btn" id="drawer-gastos" data-tab="gastos">
                     <div class="icon-box"><i class="bi bi-wallet2"></i></div>
                     <span>Gastos</span>
@@ -1304,6 +1595,10 @@
                 <button class="drawer-btn" id="drawer-produccion" data-tab="produccion">
                     <div class="icon-box"><i class="bi bi-bar-chart-steps"></i></div>
                     <span>Producción</span>
+                </button>
+                <button class="drawer-btn" id="drawer-empleados" data-tab="empleados">
+                    <div class="icon-box"><i class="bi bi-person-badge"></i></div>
+                    <span>Empleados</span>
                 </button>
                 <button class="drawer-btn" id="drawer-config" data-tab="config">
                     <div class="icon-box"><i class="bi bi-gear"></i></div>
@@ -1321,7 +1616,7 @@
 
     <!-- ⚙️ LEGACY UI CONTROLLER -->
     <!-- Handles DOM updates and main app flow. Now uses bridged functions. -->
-    <script defer src="script.js?v=REFACTOR_V3"></script>
+    <script defer src="script.js?v=PREMIUM_V44"></script>
     <!-- Force Mobile Layout Script -->
     <script>
         function forzarGridMovil() {

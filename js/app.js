@@ -6,7 +6,7 @@
 import * as utils from './modules/utils.js';
 import * as auth from './modules/auth.js';
 
-console.log('🚀 Sistema AWA: Initializing App Modules...');
+console.log('🚀 BizCore: Initializing App Modules...');
 
 // --- BRIDGE: Expose Utils to Global Scope for Legacy Compatibility ---
 window.formatCurrency = utils.formatCurrency;
@@ -15,10 +15,11 @@ window.getIconForType = utils.getIconForType;
 window.togglePasswordVisibility = utils.togglePasswordVisibility;
 
 // --- BRIDGE: Config ---
-import { PRICING } from './modules/config.js';
+import { PRICING, initConfigListener, saveConfig } from './modules/config.js';
 window.PRECIO_LOCAL = PRICING.LOCAL;
 window.PRECIO_CAMION = PRICING.CAMION;
 window.PRECIO_DELIVERY = PRICING.DELIVERY;
+window.saveConfig = saveConfig;
 
 console.log(`💰 Pricing Loaded: Local=$${PRICING.LOCAL}, Truck=$${PRICING.CAMION}, Delivery=$${PRICING.DELIVERY}`);
 
@@ -78,6 +79,12 @@ window.app.applyQuickFilter = reports.applyQuickFilter;
 window.login = auth.login;
 window.logout = auth.logout;
 
+// --- BRIDGE: Profile ---
+import * as profile from './modules/profile.js';
+window.actualizarPerfilVisual = profile.actualizarPerfilVisual;
+window.initProfile = profile.initProfile;
+window.resetNotifDot = profile.resetNotifDot;
+
 // Initialize Auth Listener
 // We assume 'script.js' defines 'window.updateAuthUI(user)' to handle the UI changes
 // We wrap it in a timeout or check to ensure script.js has loaded its function
@@ -95,6 +102,9 @@ window.addEventListener('load', () => {
     if (clients.initClientsListener) clients.initClientsListener();
     if (clients.initRutaListener) clients.initRutaListener();
     if (calendar.initCalendar) calendar.initCalendar();
+    if (window.initProfile) window.initProfile();
+    // Initialize Dynamic Config Sync
+    if (typeof initConfigListener === 'function') initConfigListener();
 });
 
 console.log('✅ Utils & Auth Modules Loaded & Bridged.');

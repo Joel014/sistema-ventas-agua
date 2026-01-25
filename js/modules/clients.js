@@ -293,58 +293,57 @@ export function renderClientesList(listToRender = window.listaClientes) {
     const selector = document.getElementById('clienteCamionSelector');
     if (container) {
         if (listToRender.length === 0) {
-            container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted);">No hay clientes registrados</div>';
+            container.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-muted); opacity:0.5;">No hay clientes registrados</div>';
         } else {
-            container.innerHTML = `
-          <div class="client-list-items">
-             ${listToRender.map(c => `
-              <div class="client-card" style="display:flex; justify-content:space-between; align-items:center; param:12px; padding:12px; border-bottom:1px solid rgba(255,255,255,0.05); transition:background 0.2s;">
-                  <div style="flex:1;">
-                      <div style="font-weight:600; font-size:15px; color:var(--text-main); margin-bottom:4px;">${c.nombre}</div>
-                      <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:12px;">
-                          <div style="display:flex; align-items:center; color:var(--text-muted);">
-                             <i class="bi bi-geo-alt" style="margin-right:4px;"></i> ${c.direccion || 'Sin dirección'}
+            container.innerHTML = listToRender.map(c => `
+              <div class="client-card-premium">
+                  <!-- Info Left -->
+                  <div class="client-info-premium">
+                      <h3>${c.nombre}</h3>
+                      <div class="client-address-premium">
+                          <i class="bi bi-geo-alt"></i> ${c.direccion || 'Sin dirección registrada'}
+                      </div>
+                      <div class="client-badges-premium">
+                          <div class="premium-badge price">
+                              <i class="bi bi-tag-fill"></i> RD$ ${c.precioEspecial}
+                          </div>
+                          <div class="premium-badge stock">
+                              <i class="bi bi-box-seam"></i> Stock: ${c.stockBotellones || 0}
                           </div>
                       </div>
-                      <div style="display:flex; gap:8px; margin-top:6px;">
-                          <span style="font-size:11px; font-weight:600; background:rgba(46, 204, 113, 0.15); color:#2ecc71; padding:2px 8px; border-radius:4px;">
-                              RD$ ${c.precioEspecial}
-                          </span>
-                          <span style="font-size:11px; font-weight:600; background:rgba(0, 194, 255, 0.15); color:var(--primary); padding:2px 8px; border-radius:4px;">
-                              <i class="bi bi-box-seam"></i> Stock: ${c.stockBotellones || 0}
-                          </span>
+                  </div>
+
+                  <!-- Actions Right -->
+                  <div class="client-actions-premium">
+                      <!-- Primary Column: Route & Location -->
+                      <div class="actions-column-premium">
+                          <button onclick="agregarARuta('${c.id}')" class="btn-circle-premium primary" title="Enviar a Ruta">
+                              <i class="bi bi-truck"></i>
+                          </button>
+                          <button onclick="gestionarUbicacion('${c.id}', ${c.lat || 'null'}, ${c.lng || 'null'})" 
+                                  class="btn-circle-premium" 
+                                  style="background:${c.lat ? 'rgba(0, 194, 255, 0.15)' : 'rgba(255,255,255,0.03)'}; 
+                                         color:${c.lat ? 'var(--primary)' : 'var(--text-muted)'};"
+                                  title="${c.lat ? 'Ver Mapa' : 'Fijar Ubicación'}">
+                              <i class="bi ${c.lat ? 'bi-geo-alt-fill' : 'bi-geo-alt'}"></i>
+                          </button>
+                      </div>
+
+                      <!-- Secondary Column: History, Edit, Delete -->
+                      <div class="secondary-actions-premium">
+                          <button onclick="verHistorialCliente('${c.id}')" class="btn-small-premium" title="Historial">
+                              <i class="bi bi-clock-history"></i>
+                          </button>
+                          <button onclick="editarCliente('${c.id}')" class="btn-small-premium" title="Editar">
+                              <i class="bi bi-pencil-square"></i>
+                          </button>
+                          <button onclick="eliminarCliente('${c.id}')" class="btn-small-premium danger" title="Eliminar">
+                              <i class="bi bi-trash"></i>
+                          </button>
                       </div>
                   </div>
-                  <div style="display:flex; gap:8px; align-items:center;">
-                    <div style="display:flex; flex-direction:column; gap:8px;">
-                        <button onclick="agregarARuta('${c.id}')" style="background:var(--primary); color:white; border:none; width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 4px 10px rgba(0,194,255,0.3);" title="Enviar a Ruta">
-                          <i class="bi bi-truck" style="font-size:18px;"></i>
-                        </button>
-                        <button onclick="gestionarUbicacion('${c.id}', ${c.lat || 'null'}, ${c.lng || 'null'})" 
-                                style="background:${c.lat ? 'rgba(0, 194, 255, 0.15)' : 'rgba(255,255,255,0.05)'}; 
-                                       color:${c.lat ? 'var(--primary)' : 'var(--text-muted)'}; 
-                                       border:${c.lat ? '1px solid var(--primary)' : '1px solid var(--border)'}; 
-                                       width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; cursor:pointer;" 
-                                title="${c.lat ? 'Gestionar Ubicación' : 'Fijar Ubicación GPS'}">
-                          <i class="bi ${c.lat ? 'bi-geo-alt-fill' : 'bi-geo-alt'}" style="font-size:18px;"></i>
-                        </button>
-                    </div>
-                    <div style="display:flex; flex-direction:column; gap:4px;">
-                        <button onclick="verHistorialCliente('${c.id}')" style="background:rgba(255,255,255,0.05); color:var(--info); border:1px solid var(--border); width:28px; height:28px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Ver Historial">
-                            <i class="bi bi-clock-history" style="font-size:12px;"></i>
-                        </button>
-                        <button onclick="editarCliente('${c.id}')" style="background:rgba(255,255,255,0.05); color:var(--text-muted); border:1px solid var(--border); width:28px; height:28px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Editar">
-                            <i class="bi bi-pencil-square" style="font-size:12px;"></i>
-                        </button>
-                        <button onclick="eliminarCliente('${c.id}')" style="background:rgba(231,29,54,0.1); color:var(--danger); border:1px solid rgba(231,29,54,0.3); width:28px; height:28px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center;" title="Eliminar">
-                            <i class="bi bi-trash" style="font-size:12px;"></i>
-                        </button>
-                    </div>
-                </div>
               </div>
-          `).join('')}
-          </div>
-        `;
+          `).join('');
         }
     }
 
@@ -783,7 +782,10 @@ export function initRutaListener() {
 
         if (previousRouteCount !== -1 && window.rutaDiaList.length > previousRouteCount) {
             if (typeof window.playNotificationBeep === 'function') window.playNotificationBeep();
-            // Notif logic...
+
+            // Show red dot
+            const dot = document.getElementById('rutaNotifDot');
+            if (dot) dot.style.display = 'block';
         }
         previousRouteCount = window.rutaDiaList.length;
 
